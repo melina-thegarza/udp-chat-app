@@ -1,9 +1,56 @@
 import sys
 import socket
 import json
+import threading
+
+# Define the global dictionary variable
+client_table = {}
 
 
-if __name__ == "__main__":
+class ClientReceive(threading.Thread):
+    #receive incoming messages from server & other clients
+    def __init__(self,sock,client_name,server_ip,server_port):
+        super().__init__()
+        self.sock = sock
+        self.name = client_name
+        self.server_ip = server_ip
+        self.server_port= server_port
+
+
+    def run(self):
+         #listen for incoming message
+        while(True):
+       
+            #message from sender
+            entire_message = self.sock.recvfrom(1024)
+            message = entire_message[0]
+            #remove eventually
+            if message == "q":
+                break
+            sender_address_port = entire_message[1]
+            sender_ip_address = sender_address_port[0]
+            sender_port = sender_address_port[1]
+
+            #if msg is from server, assume it is the client table
+            #update table
+            if sender_ip_address==self.server_ip and sender_port == self.server_port:
+                #update client_table
+                global client_table
+                client_table = eval(message)
+                print("[Client table updated.]")
+                print(client_table)
+
+            #else assume it is from client
+            #lookup client, print message
+            else:
+
+                print("from another client:" +(message.decode()))
+
+            
+        
+
+
+def main():
 
     #2.1 Registration
     #ChatApp <mode> <command-line arguments>
@@ -46,8 +93,14 @@ if __name__ == "__main__":
             #represents table with client-name as key
             server_table[message.decode()] = [client_ip_address,client_port,True]
 
-            #send ack & table
-            server_socket.sendto(str.encode(str(server_table)),client_address_port)
+            #send ack for client registration
+            server_socket.sendto(str.encode("Registration Successful"),client_address_port)
+
+            #BROADCAST TO THE ALL OF THE CLIENTS, the new updated client table
+            for client in server_table:
+                broadcast_client_ip = server_table[client][0]
+                broadcast_client_port = server_table[client][1]
+                server_socket.sendto(str.encode(str(server_table)),(broadcast_client_ip,broadcast_client_port))
             #...
             print("[Client table updated.]")
             print(server_table)
@@ -76,24 +129,32 @@ if __name__ == "__main__":
         client_socket.sendto(str.encode(client_name),(server_ip,server_port))
 
         #client table
-        client_table = {}
+        global client_table
 
         ##successful registration?
-        msg = client_socket.recvfrom(1024)
-        ack_and_table = msg[0]
-        msg_dict = eval(ack_and_table)
-        if msg_dict is not None:
+        request = client_socket.recvfrom(1024)
+        registraction_ack = request[0].decode()
+       
+        if registraction_ack == "Registration Successful":
             print("[Welcome, You are registered.]")
         
-        #if successful update the table
-        client_table = msg_dict
-        print("[Client table updated.]")
-        print(client_table)
+        # #if successful update the table
+        # client_table = msg_dict
+        # print("[Client table updated.]")
+        # print(client_table)
 
+
+        # receive & sender threads for client created
+        receive = ClientReceive(client_socket, client_name, server_ip, server_port)
+         # sender = Send(self.sock, self.name)
+
+        # start receive & sender threads
+        # sender.start()
+        receive.start()
 
         #send messages
         while(True):
-              user_input = input(">>>")
+              user_input = input(">>> ")
               #process send message 
               if user_input.split(" ")[0]=='send':
                   receiver_name = user_input.split(" ")[1]
@@ -101,13 +162,8 @@ if __name__ == "__main__":
 
                   receiver_ip = client_table[receiver_name][0]
                   receiver_port = client_table[receiver_name][1]
-
-                  print(receiver_ip)
-                  print(receiver_port)
-
-
-              #send message to specified client
-              #client_socket.sendto(str.encode(user_input),(server_ip,server_port))
+                  #send message to specified client
+                #   client_socket.sendto(str.encode(user_input),(receiver_ip,receiver_port))
 
               #ack = client_socket.recvfrom(1024)
               #print("ack: "+str(ack))
@@ -115,6 +171,6 @@ if __name__ == "__main__":
 
 
 
-
-
+#run main
+main()
 
