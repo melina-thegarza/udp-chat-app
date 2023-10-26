@@ -9,9 +9,9 @@ client_table = {}
 
 class ClientReceive(threading.Thread):
     #receive incoming messages from server & other clients
-    def __init__(self,sock,client_name,server_ip,server_port):
+    def __init__(self,socket,client_name,server_ip,server_port):
         super().__init__()
-        self.sock = sock
+        self.socket = socket
         self.name = client_name
         self.server_ip = server_ip
         self.server_port= server_port
@@ -22,7 +22,7 @@ class ClientReceive(threading.Thread):
         while(True):
        
             #message from sender
-            entire_message = self.sock.recvfrom(1024)
+            entire_message = self.socket.recvfrom(1024)
             message = entire_message[0]
             #remove eventually
             if message == "q":
@@ -34,17 +34,38 @@ class ClientReceive(threading.Thread):
             #if msg is from server, assume it is the client table
             #update table
             if sender_ip_address==self.server_ip and sender_port == self.server_port:
-                #update client_table
-                global client_table
-                client_table = eval(message)
-                print("[Client table updated.]")
-                print(client_table)
+                #IF DEREG ACK from server
+                if message.decode()=="DEREG: Success":
+                    print("[You are Offline. Bye.]")
+                #else we are receiving updated table
+                else:
+                    #update client_table
+                    global client_table
+                    client_table = eval(message)
+                    print("[Client table updated.]")
+                    print(client_table)
 
+            #IF ACK For Message Received
+            elif message.decode().split("=")[0]=="ACK: Message Received":
+                 sender = message.decode().split("=")[1]
+                 print(f"[Message received by {sender}.]")
+            
             #else assume it is from client
             #lookup client, print message
             else:
+                #SEND ACK TO sender!!
+                self.socket.sendto(str.encode(f"ACK: Message Received={self.name}"),sender_address_port)
 
-                print("from another client:" +(message.decode()))
+                #find the name of the sender
+                sender_nickname = ""
+                for client in client_table:
+                     ip = client_table[client][0]
+                     port = client_table[client][1]
+                     if ip==sender_ip_address and port == sender_port:
+                         sender_nickname=client
+                #print out message from other client
+                print(sender_nickname+": "+message.decode())
+                
 
             
         
@@ -66,6 +87,7 @@ def main():
         if not 1024<=server_port<=65535:
             print("[Invalid port number, needs to be in range 1024-65535]")
         
+        
         #hard-coding, need to get from local machine?
         server_ip = "127.0.0.1"
 
@@ -80,30 +102,43 @@ def main():
         server_table = {}
 
         #listen for incoming client connections
-        while(True):
-            print(">>>")
+        try:
+            while(True):
+                print(">>> ")
 
-            #connection from client wanting to register
-            rec = server_socket.recvfrom(1024)
-            message = rec[0]
-            client_address_port = rec[1]
-            client_ip_address = client_address_port[0]
-            client_port = client_address_port[1]
+                #connection from client wanting to register
+                rec = server_socket.recvfrom(1024)
+                message = rec[0].decode()
+                client_address_port = rec[1]
+                client_ip_address = client_address_port[0]
+                client_port = client_address_port[1]
 
-            #represents table with client-name as key
-            server_table[message.decode()] = [client_ip_address,client_port,True]
+                #dereg message
+                if message.startswith("DEREG:"):
+                    #change client status to False
+                    dereg_client = message.split(":")[1]
+                    server_table[dereg_client] = [client_ip_address,client_port,False]
+                    server_socket.sendto(str.encode("DEREG: Success"),client_address_port)
+                else:
+                    #represents table with client-name as key
+                    server_table[message] = [client_ip_address,client_port,True]
+                    #send ack for client registration
+                    server_socket.sendto(str.encode("ACK: Registration Successful"),client_address_port)
 
-            #send ack for client registration
-            server_socket.sendto(str.encode("Registration Successful"),client_address_port)
+                #BROADCAST TO THE ALL OF THE CLIENTS, the new updated client table
+                for client in server_table:
+                    #send to only online clients
+                    if server_table[client][2] == True:
+                        broadcast_client_ip = server_table[client][0]
+                        broadcast_client_port = server_table[client][1]
+                        server_socket.sendto(str.encode(str(server_table)),(broadcast_client_ip,broadcast_client_port))
+                #...
+                print("[Client table updated.]")
+                print(server_table)
+        except KeyboardInterrupt:
+            print("Stoping Server...")
+           
 
-            #BROADCAST TO THE ALL OF THE CLIENTS, the new updated client table
-            for client in server_table:
-                broadcast_client_ip = server_table[client][0]
-                broadcast_client_port = server_table[client][1]
-                server_socket.sendto(str.encode(str(server_table)),(broadcast_client_ip,broadcast_client_port))
-            #...
-            print("[Client table updated.]")
-            print(server_table)
         
 
     #client registration
@@ -135,14 +170,8 @@ def main():
         request = client_socket.recvfrom(1024)
         registraction_ack = request[0].decode()
        
-        if registraction_ack == "Registration Successful":
+        if registraction_ack == "ACK: Registration Successful":
             print("[Welcome, You are registered.]")
-        
-        # #if successful update the table
-        # client_table = msg_dict
-        # print("[Client table updated.]")
-        # print(client_table)
-
 
         # receive & sender threads for client created
         receive = ClientReceive(client_socket, client_name, server_ip, server_port)
@@ -153,21 +182,40 @@ def main():
         receive.start()
 
         #send messages
-        while(True):
-              user_input = input(">>> ")
-              #process send message 
-              if user_input.split(" ")[0]=='send':
-                  receiver_name = user_input.split(" ")[1]
-                  message_to_send = user_input.split(" ")[2]
+        try:
+            while(True):
+                try:
+                    user_input = input(">>> ")
+                except KeyboardInterrupt:
+                    # Handle Ctrl+C
+                    print("Exiting...")
+                    receive.join()
+                    
+                    
+                #process send message 
+                #MAYBE CREATE sender thread that has timeout
+                if user_input.split(" ")[0]=='send':
+                    receiver_name = user_input.split(" ")[1]
+                    message_to_send = user_input.split(" ")[2]
 
-                  receiver_ip = client_table[receiver_name][0]
-                  receiver_port = client_table[receiver_name][1]
-                  #send message to specified client
-                #   client_socket.sendto(str.encode(user_input),(receiver_ip,receiver_port))
+                    receiver_ip = client_table[receiver_name][0]
+                    receiver_port = client_table[receiver_name][1]
+                    #send message to specified client
+                    client_socket.sendto(str.encode(message_to_send),(receiver_ip,receiver_port))
+                #deregistration
+                elif user_input == "dereg":
+                    #send dereg message to server
+                    client_socket.sendto(str.encode(f"DEREG:{client_name}"),(server_ip,server_port))
 
-              #ack = client_socket.recvfrom(1024)
-              #print("ack: "+str(ack))
+        except Exception as e:
+            # Handle any other exceptions
+            print("An error occurred:", str(e))
+            # Stop the thread
+            receive.join()
+            
+    
 
+                  
 
 
 
