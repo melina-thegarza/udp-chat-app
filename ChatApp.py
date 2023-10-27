@@ -2,6 +2,7 @@ import sys
 import socket
 import json
 import threading
+import datetime
 
 # Define the global dictionary variable
 client_table = {}
@@ -37,6 +38,12 @@ class ClientReceive(threading.Thread):
                 #IF DEREG ACK from server
                 if message.decode()=="DEREG: Success":
                     print("[You are Offline. Bye.]")
+                #IF REG ACK from server
+                elif message.decode()=="REG: No Offline Messages":
+                    print("[You have no offline messages]")
+                #IF OFFLINE ACK from server
+                elif message.decode().startswith("[Offline Message"):
+                    print(message.decode())
                 #else we are receiving updated table
                 else:
                     #update client_table
@@ -105,6 +112,9 @@ def main():
         try:
             while(True):
                 print(">>> ")
+                
+                #boolean to broadcast the table
+                broadcast = True
 
                 #connection from client wanting to register
                 rec = server_socket.recvfrom(1024)
@@ -119,6 +129,22 @@ def main():
                     dereg_client = message.split(":")[1]
                     server_table[dereg_client] = [client_ip_address,client_port,False]
                     server_socket.sendto(str.encode("DEREG: Success"),client_address_port)
+                #re-registration
+                elif message.startswith("REG:"):
+                    reg_client = message.split(":")[1]
+                    server_table[reg_client] = [client_ip_address,client_port,True]
+                    #if have online message send, else don't
+                    server_socket.sendto(str.encode("REG: No Offline Messages"),client_address_port)
+                #save-message
+                elif message.startswith("SAVE:"):
+                #if the recipient’s status is online in its table, the server should try to contact client
+                #wait for an ack from the client within 100msec, if client is active send err & updated table
+
+                #recipient client is not active, save message to memory
+
+                #send ACK to sender client
+                    server_socket.sendto(str.encode(f"[Offline Message sent at <{datetime.datetime.now()}> received by the server and saved.]"),client_address_port)
+                    broadcast=False
                 else:
                     #represents table with client-name as key
                     server_table[message] = [client_ip_address,client_port,True]
@@ -126,15 +152,16 @@ def main():
                     server_socket.sendto(str.encode("ACK: Registration Successful"),client_address_port)
 
                 #BROADCAST TO THE ALL OF THE CLIENTS, the new updated client table
-                for client in server_table:
-                    #send to only online clients
-                    if server_table[client][2] == True:
-                        broadcast_client_ip = server_table[client][0]
-                        broadcast_client_port = server_table[client][1]
-                        server_socket.sendto(str.encode(str(server_table)),(broadcast_client_ip,broadcast_client_port))
-                #...
-                print("[Client table updated.]")
-                print(server_table)
+                if broadcast:
+                    for client in server_table:
+                        #send to only online clients
+                        if server_table[client][2] == True:
+                            broadcast_client_ip = server_table[client][0]
+                            broadcast_client_port = server_table[client][1]
+                            server_socket.sendto(str.encode(str(server_table)),(broadcast_client_ip,broadcast_client_port))
+                    #...
+                    print("[Client table updated.]")
+                    print(server_table)
         except KeyboardInterrupt:
             print("Stoping Server...")
            
@@ -197,15 +224,27 @@ def main():
                 if user_input.split(" ")[0]=='send':
                     receiver_name = user_input.split(" ")[1]
                     message_to_send = user_input.split(" ")[2]
+                    #check online status of receiver 
+                    receiver_status = client_table[receiver_name][2]
 
-                    receiver_ip = client_table[receiver_name][0]
-                    receiver_port = client_table[receiver_name][1]
-                    #send message to specified client
-                    client_socket.sendto(str.encode(message_to_send),(receiver_ip,receiver_port))
+                    #online, try to send message
+                    if receiver_status:
+                        receiver_ip = client_table[receiver_name][0]
+                        receiver_port = client_table[receiver_name][1]
+                        #send message to specified client
+                        client_socket.sendto(str.encode(message_to_send),(receiver_ip,receiver_port))
+                    #offline, send save-message to server
+                    else:
+                        save_msg = f"SAVE: {receiver_name} {datetime.datetime.now()} {message_to_send}"
+                        client_socket.sendto(str.encode(save_msg),(server_ip,server_port))
+
                 #deregistration
                 elif user_input == "dereg":
                     #send dereg message to server
                     client_socket.sendto(str.encode(f"DEREG:{client_name}"),(server_ip,server_port))
+                elif user_input == "reg":
+                    #send reg message to server
+                    client_socket.sendto(str.encode(f"REG:{client_name}"),(server_ip,server_port))
 
         except Exception as e:
             # Handle any other exceptions
@@ -213,11 +252,6 @@ def main():
             # Stop the thread
             receive.join()
             
-    
-
-                  
-
-
 
 #run main
 main()
