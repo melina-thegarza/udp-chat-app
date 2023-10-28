@@ -3,6 +3,7 @@ import socket
 import json
 import threading
 import datetime
+import ipaddress
 
 # Define the global dictionary variable
 client_table = {}
@@ -107,6 +108,7 @@ def main():
         #invalid port #
         if not 1024<=server_port<=65535:
             print("[Invalid port number, needs to be in range 1024-65535]")
+            sys.exit()
         
         
         #hard-coding, need to get from local machine?
@@ -232,6 +234,19 @@ def main():
         client_port = int(sys.argv[5])
 
         #ADD checks for valid ip (decimal) & valid port number
+        if not 1024<=server_port<=65535:
+            print("[Invalid server port number, needs to be in range 1024-65535]")
+            sys.exit()
+        elif not 1024<=client_port<=65535:
+            print("[Invalid client port number, needs to be in range 1024-65535]")
+            sys.exit()
+        else:
+            try:
+                ipaddress.ip_address(server_ip)
+            except:
+                print("[Invalid ip address, needs to be in format of #.#.#.#]")
+                sys.exit()
+
         
         #get ip address of client machine
         client_ip = socket.gethostbyname(socket.gethostname())
