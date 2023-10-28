@@ -41,8 +41,22 @@ class ClientReceive(threading.Thread):
                 #IF REG ACK from server
                 elif message.decode()=="REG: No Offline Messages":
                     print("[You have no offline messages]")
+                elif message.decode()=="REG: Offline Messages":
+                    print("[You have offline messages:]")
+                #offline-message
+                elif message.decode().startswith("[OFFLINE]"):
+                    print(message.decode().split("[OFFLINE]")[1])
+                    sender = message.decode().split("[OFFLINE]")[1].split(":")[0]
+                    #send ACK back to server, confirming they received the offline message
+                    #[Offline Message sent at <timestamp> received by <receiver nickname>.]
+                    self.socket.sendto(str.encode(f"[OFFLINE ACK]{sender} {datetime.datetime.now()} {self.name}"),sender_address_port)
+
+                #Confirmation that offline message was received
+                elif message.decode().startswith("[OFFLINE CONFIRM]"):
+                    print(message.decode().split("[OFFLINE CONFIRM]")[1])
+
                 #IF OFFLINE ACK from server
-                elif message.decode().startswith("[Offline Message"):
+                elif message.decode().startswith("[Offline Message sent at"):
                     print(message.decode())
                 #else we are receiving updated table
                 else:
@@ -106,7 +120,11 @@ def main():
         #bind to ip address & port
         server_socket.bind((server_ip,server_port))
 
+        #hold info about active/inactive clients
         server_table = {}
+
+        #save message table, holds offline messages for each client
+        save_message = {}
 
         #listen for incoming client connections
         try:
@@ -134,20 +152,57 @@ def main():
                     reg_client = message.split(":")[1]
                     server_table[reg_client] = [client_ip_address,client_port,True]
                     #if have online message send, else don't
-                    server_socket.sendto(str.encode("REG: No Offline Messages"),client_address_port)
+                    if len(save_message[reg_client])>0:
+                        #ACK of reregistration
+                        server_socket.sendto(str.encode("REG: Offline Messages"),client_address_port)
+                        #loop through offline messages for re-registered client
+                        offline_messages = save_message[reg_client]
+                        for message in offline_messages:
+                            server_socket.sendto(str.encode("[OFFLINE]"+message),client_address_port)
+                        #clear the offline messages
+                        save_message[reg_client] = []
+                    else:
+                        #ACK of reregistration
+                        server_socket.sendto(str.encode("REG: No Offline Messages"),client_address_port)
                 #save-message
                 elif message.startswith("SAVE:"):
                 #if the recipient’s status is online in its table, the server should try to contact client
                 #wait for an ack from the client within 100msec, if client is active send err & updated table
 
-                #recipient client is not active, save message to memory
+                    #recipient client is not active, save message to memory
+                    #add entry into save-message table
+                    receiver = message.split(" ")[1]
+                    sender = message.split(" ")[2]
+                    timestamp = message.split(" ")[3] + " "+message.split(" ")[4]
+                    message_to_save = message.split(" ")[5]
 
-                #send ACK to sender client
+                    #REFORMAT THE MESSAGE: <name_sender>: <timestamp> <messsage>
+                    formatted_message = f"{sender}: <{timestamp}> {message_to_save}"
+                    save_message[receiver].append(formatted_message) 
+
+                    #send ACK to sender client
                     server_socket.sendto(str.encode(f"[Offline Message sent at <{datetime.datetime.now()}> received by the server and saved.]"),client_address_port)
                     broadcast=False
+                #ACK TO OFFLINE message
+                elif message.startswith("[OFFLINE ACK]"):
+                    #send ACK to original sender of message
+                    # #[Offline Message sent at <timestamp> received by <receiver nickname>.]
+                    #WE NEED to get the timestamp AND recevier nickname, as well as, we need to know who to sent this message
+                    #[OFFLINE ACK]:{sender} {datetime.datetime.now()} {self.name}
+                    message = message.split("[OFFLINE ACK]")[1]
+                    sender = message.split(" ")[0]
+                    timestamp = message.split(" ")[1]+message.split(" ")[2]
+                    receiver = message.split(" ")[3]
+                    sender_ip = server_table[sender][0]
+                    sender_port = server_table[sender][1]
+                    server_socket.sendto(str.encode(f"[OFFLINE CONFIRM][Offline Message sent at {timestamp} received by {receiver}.]"),(sender_ip,sender_port))
+                    broadcast = False
+                #initial registration of client
                 else:
                     #represents table with client-name as key
                     server_table[message] = [client_ip_address,client_port,True]
+                    #create entry in save-message table for new client
+                    save_message[message] = []
                     #send ack for client registration
                     server_socket.sendto(str.encode("ACK: Registration Successful"),client_address_port)
 
@@ -235,13 +290,14 @@ def main():
                         client_socket.sendto(str.encode(message_to_send),(receiver_ip,receiver_port))
                     #offline, send save-message to server
                     else:
-                        save_msg = f"SAVE: {receiver_name} {datetime.datetime.now()} {message_to_send}"
+                        save_msg = f"SAVE: {receiver_name} {client_name} {datetime.datetime.now()} {message_to_send}"
                         client_socket.sendto(str.encode(save_msg),(server_ip,server_port))
 
                 #deregistration
                 elif user_input == "dereg":
                     #send dereg message to server
                     client_socket.sendto(str.encode(f"DEREG:{client_name}"),(server_ip,server_port))
+                #re-register
                 elif user_input == "reg":
                     #send reg message to server
                     client_socket.sendto(str.encode(f"REG:{client_name}"),(server_ip,server_port))
