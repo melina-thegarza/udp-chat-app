@@ -71,6 +71,14 @@ class ClientReceive(threading.Thread):
                 #IF OFFLINE ACK from server
                 elif message.decode().startswith("[Offline Message sent at"):
                     print(message.decode())
+
+                #receiving GC message
+                elif message.decode().startswith("Group Chat "):
+                    print(message.decode())
+
+                #ACK for group chat message
+                elif message.decode()=="[GROUP ACK]":
+                    print("[Group Message recceived by Server.]")
                 #else we are receiving updated table
                 else:
                     #update client_table
@@ -142,12 +150,14 @@ def send_with_ack(message,client_socket,client_name,server_ip,server_port):
             save_msg = f"SAVE: {receiver_name} {client_name} {datetime.datetime.now()} {message_to_send}"
             client_socket.sendto(str.encode(save_msg),(server_ip,server_port))
 
-
+    #groupchat
+    elif message.split(" ")[0]=="send_all":
+        message_to_send = message.split(" ")[1]
+        group_msg = f"GROUP:{client_name}: {message_to_send}"
+        client_socket.sendto(str.encode(group_msg),(server_ip,server_port))
 
     #deregistration
     elif message == "dereg":
-        #send dereg message to server
-        # client_socket.sendto(str.encode(f"DEREG:{client_name}"),(server_ip,server_port))
         # Create a new thread for sending the deregistration request
         deregistration_thread = threading.Thread(target=send_dereg, args=(client_socket,client_name,server_ip,server_port))
         # Start the thread
@@ -225,7 +235,7 @@ def main():
         #save message table, holds offline messages for each client
         save_message = {}
 
-        #listen for incoming client connections
+        #listen for incoming client connections/messages
         try:
             while(True):
                 print(">>> ")
@@ -288,10 +298,11 @@ def main():
                 #ACK TO OFFLINE message
                 elif message.startswith("[OFFLINE ACK]"):
                     #send ACK to original sender of message
-                    # #[Offline Message sent at <timestamp> received by <receiver nickname>.]
-                    #WE NEED to get the timestamp AND recevier nickname, as well as, we need to know who to sent this message
                     #[OFFLINE ACK]:{sender} {datetime.datetime.now()} {self.name}
                     message = message.split("[OFFLINE ACK]")[1]
+                    #remove Group Chat beginning
+                    if message.startswith("Group Chat"):
+                        message = message.split("Group Chat ")[1]
                     sender = message.split(" ")[0]
                     timestamp = message.split(" ")[1]+message.split(" ")[2]
                     receiver = message.split(" ")[3]
@@ -299,12 +310,46 @@ def main():
                     sender_port = server_table[sender][1]
                     server_socket.sendto(str.encode(f"[OFFLINE CONFIRM][Offline Message sent at {timestamp} received by {receiver}.]"),(sender_ip,sender_port))
                     broadcast = False
+                ##GROUP CHAT message
+                elif message.startswith("GROUP:"):
+                    message = message.split("GROUP:")[1]
+                    #send ACK back to sender
+                    server_socket.sendto(str.encode("[GROUP ACK]"), client_address_port)
+
+                    #get the name of the sender
+                    sender_name = ""
+                    for client in server_table:
+                        if server_table[client][0]==client_ip_address and server_table[client][1]==client_port:
+                            sender_name = client
+
+
+                    #loop through clients and send GC message
+                    for client in server_table:
+                        gc_client_ip = server_table[client][0]
+                        gc_client_port = server_table[client][1]
+                        if server_table[client][2]==True:
+                            #send gc message to active client
+                            if gc_client_port!=client_port or gc_client_ip!=client_ip_address:
+                                server_socket.sendto(str.encode("Group Chat "+ message), (gc_client_ip,gc_client_port))
+                        else:
+                            #save message for offline clients
+                            #message to save
+                            msg_save = message.split(": ")[1]
+                            formatted_message = f"Group Chat {sender_name}: <{datetime.datetime.now()}> {msg_save}"
+                            save_message[client].append(formatted_message) 
+
+                            #send ACK to sender client
+                            server_socket.sendto(str.encode(f"[Offline Message sent at <{datetime.datetime.now()}> received by the server and saved.]"),client_address_port)
+                            
+                    broadcast = False
+                
                 #initial registration of client
                 else:
                     #represents table with client-name as key
                     server_table[message] = [client_ip_address,client_port,True]
                     #create entry in save-message table for new client
-                    save_message[message] = []
+                    if message not in save_message:
+                        save_message[message] = []
                     #send ack for client registration
                     server_socket.sendto(str.encode("ACK: Registration Successful"),client_address_port)
 
