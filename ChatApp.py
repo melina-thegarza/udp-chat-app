@@ -62,13 +62,17 @@ class ClientReceive(threading.Thread):
                     print("[You have offline messages:]")
                 #offline-message
                 elif message.decode().startswith("[OFFLINE]"):
-                    print(message.decode().split("[OFFLINE]")[1])
+                    msg = message.decode().split("[OFFLINE]")[1]
+                    #check to see if this is a delivery confirmation for a offline message
+                    if msg.startswith("[OFF]"):
+                        print(msg.split("[OFF]")[1])
+                    else:
+                        print(msg)
                     sender = message.decode().split("[OFFLINE]")[1].split(":")[0]
                     #extract original timestamp
                     start_index = message.decode().index('<') + 1
                     end_index = message.decode().index('>')
                     timestamp = message.decode()[start_index:end_index]
-
 
                     #send ACK back to server, confirming they received the offline message
                     #[Offline Message sent at <timestamp> received by <receiver nickname>.]
@@ -268,7 +272,7 @@ def server_broadcast(server_socket):
 def server_receiver(server_socket,message,client_address_port,client_ip_address,client_port):
     #boolean to broadcast the table
     broadcast = True
-    
+
     #dereg message
     if message.startswith("DEREG:"):
         #change client status to False
@@ -326,12 +330,22 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
         #remove Group Chat beginning
         if message.startswith("Group Chat"):
             message = message.split("Group Chat ")[1]
-        sender = message.split(" ")[0]
-        timestamp = message.split(" ")[1]+" "+message.split(" ")[2]
-        receiver = message.split(" ")[3]
-        sender_ip = server_table[sender][0]
-        sender_port = server_table[sender][1]
-        server_socket.sendto(str.encode(f"[OFFLINE CONFIRM][Offline Message sent at <{timestamp}> received by {receiver}.]"),(sender_ip,sender_port))
+        #make sure that client isn't jusst re-registering and receiving a queued up delivery confirmation
+        if not message.startswith("[OFF]"):
+            sender = message.split(" ")[0]
+            timestamp = message.split(" ")[1]+" "+message.split(" ")[2]
+            receiver = message.split(" ")[3]
+            sender_ip = server_table[sender][0]
+            sender_port = server_table[sender][1]
+
+            #if original sender is online
+            if server_table[sender][2]==True:
+                server_socket.sendto(str.encode(f"[OFFLINE CONFIRM][Offline Message sent at <{timestamp}> received by {receiver}.]"),(sender_ip,sender_port))
+            #original sender is offline
+            else:
+                #save to sender's offline messages
+                save_message[sender].append(f"[OFF][Offline Message sent at <{timestamp}> received by {receiver}.]") 
+                
         broadcast = False
     #ONLINE ACK
     elif message.startswith("[ONLINE ACK]:"):
