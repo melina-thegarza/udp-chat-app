@@ -91,7 +91,10 @@ class ClientReceive(threading.Thread):
                     print(message.decode())
 
                 #ACK for group chat message
-                elif message.decode()=="[GROUP ACK]":
+                elif message.decode().startswith("[GROUP ACK]"):
+                    #remove message_id from ack dict
+                    message_id = message.decode().split("[GROUP ACK]")[1]
+                    message_acks.pop(message_id, None)
                     print("[Group Message received by Server.]")
                 
                 #Confirmation that we are still active
@@ -143,12 +146,11 @@ class ClientReceive(threading.Thread):
                 
 
 #send message between client-client, have timeout 
-def send_with_ack(message,client_socket,client_name,server_ip,server_port):
+def sender_client(message,client_socket,client_name,server_ip,server_port):
     global client_table
     message_id = str(uuid.uuid4())
     message_acks[message_id] = False
     #process send message 
-    #MAYBE CREATE sender thread that has timeout
     if message.split(" ")[0]=='send':
         receiver_name = message.split(" ")[1]
         message_to_send = message.split(" ")[2]
@@ -179,14 +181,13 @@ def send_with_ack(message,client_socket,client_name,server_ip,server_port):
 
     #groupchat
     elif message.split(" ")[0]=="send_all":
-        message_to_send = message.split(" ")[1]
-        group_msg = f"GROUP:{client_name}: {message_to_send}"
-        client_socket.sendto(str.encode(group_msg),(server_ip,server_port))
+       send_group_chat(client_socket,client_name,server_ip,server_port,message)
 
     #deregistration
     elif message == "dereg":
         # Create a new thread for sending the deregistration request
         deregistration_thread = threading.Thread(target=send_dereg, args=(client_socket,client_name,server_ip,server_port))
+        deregistration_thread.daemon = True
         # Start the thread
         deregistration_thread.start()
 
@@ -221,10 +222,34 @@ def send_dereg(client_socket, client_name, server_ip, server_port):
     if retries == 5:
         print("[Server not responding]")
         print("[Exiting]")
-        #EXIT -> OH clarification
+        #EXIT -> OH clarification, I belive control C
 
+#send group chat message to server, have a timeout
+def send_group_chat(client_socket,client_name,server_ip,server_port, message):
+    message_to_send = message.split(" ")[1]
+    retries = 0
+    while retries < 5:
+        #add message to dict for ack
+        message_id = str(uuid.uuid4())
+        message_acks[message_id] = False
+        #send group chat message to server
+        group_msg = f"GROUP:{message_id} {client_name}: {message_to_send}"
+        client_socket.sendto(str.encode(group_msg),(server_ip,server_port))
 
+        #wait for 100 msec
+        time.sleep(0.1)
 
+        if message_id not in message_acks:
+            #acked, break out of loop
+            break
+        else:
+            #no response from the server, retry
+            print("Retrying..")
+        retries+=1
+    if retries == 5:
+        print("[Server not responding]")
+        print("[Exiting]")
+        #EXIT -> OH clarification, control C
 
 #ping client to confirm whether or not it is still active
 def send_online_confirm(receiver, sender_info, server_socket, formatted_message, timestamp):
@@ -313,6 +338,7 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
         if server_table[receiver][2]==True:
             # Create a new thread for checking to see if client is online
             active_thread = threading.Thread(target=send_online_confirm, args=(receiver,client_address_port,server_socket,formatted_message,timestamp))
+            active_thread.daemon = True
             # Start the thread
             active_thread.start()
         else:
@@ -355,8 +381,10 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
     ##GROUP CHAT message
     elif message.startswith("GROUP:"):
         message = message.split("GROUP:")[1]
+        message_id = message.split(" ")[0]
+        message = message.split(" ")[1] + " " + message.split(" ")[2]
         #send ACK back to sender
-        server_socket.sendto(str.encode("[GROUP ACK]"), client_address_port)
+        server_socket.sendto(str.encode(f"[GROUP ACK]{message_id}"), client_address_port)
 
         #get the name of the sender
         sender_name = ""
@@ -412,13 +440,17 @@ def main():
     #$ ChatApp -s <port>
     #the port number should be an integer value in the range 1024-65535.
     if mode == "-s":
-        server_port = int(sys.argv[2])
+        server_port = sys.argv[2]
         #invalid port #
-        if not 1024<=server_port<=65535:
-            print("[Invalid port number, needs to be in range 1024-65535]")
-            sys.exit()
-        
-        
+        try:
+            int(server_port)
+        except:
+             sys.exit(">>> [ERROR: Port number not an integer]")
+        if not 1024<=int(server_port)<=65535:
+            sys.exit(">>> [ERROR: Port number out of range, needs to be in range 1024-65535]")
+        #cast into int
+        server_port = int(server_port)
+
         #hard-coding, need to get from local machine?
         server_ip = "127.0.0.1"
 
@@ -450,6 +482,7 @@ def main():
 
                 #start a new thread to handle the received info
                 server_receiver_thread = threading.Thread(target=server_receiver, args=(server_socket,message,client_address_port,client_ip_address,client_port))
+                server_receiver_thread.daemon = True
                 server_receiver_thread.start()
 
         except KeyboardInterrupt:
@@ -514,19 +547,18 @@ def main():
             while(True):
                 try:
                     user_input = input(">>> ")
+                    send_thread = threading.Thread(target=sender_client, args=(user_input,client_socket,client_name,server_ip,server_port))
+                    send_thread.daemon = True
+                    send_thread.start()
                 except KeyboardInterrupt:
                     # Handle Ctrl+C
-                    print("Exiting...")
-                    receive.join()
+                    sys.exit(">>> Exiting...")        
                 
-                send_thread = threading.Thread(target=send_with_ack, args=(user_input,client_socket,client_name,server_ip,server_port))
-                send_thread.start()
 
         except Exception as e:
             # Handle any other exceptions
             print("An error occurred:", str(e))
-            # Stop the thread
-            receive.join()
+            
             
 
 #run main
