@@ -22,149 +22,136 @@ def handle_message(message):
     #handle received messages
     print("TO DO")
 
-
-class ClientReceive(threading.Thread):
-    #receive incoming messages from server & other clients
-    def __init__(self,socket,client_name,server_ip,server_port):
-        super().__init__()
-        self.socket = socket
-        self.name = client_name
-        self.server_ip = server_ip
-        self.server_port= server_port
-
-
-    def run(self):
-         #listen for incoming message
-        while(True):
+#thread to receive client messages/ACKs
+def client_receiver(client_socket, client_name, server_ip, server_port):
+    #listen for incoming message
+    while(True):
        
-            #message from sender
-            entire_message = self.socket.recvfrom(65535)
-            message = entire_message[0]
-          
-            #remove eventually
-            if message == "q":
-                break
-            sender_address_port = entire_message[1]
-            sender_ip_address = sender_address_port[0]
-            sender_port = sender_address_port[1]
+        #message from sender
+        entire_message = client_socket.recvfrom(65535)
+        message = entire_message[0].decode()
+        
+        #remove eventually
+        if message == "q":
+            break
+        sender_address_port = entire_message[1]
+        sender_ip_address = sender_address_port[0]
+        sender_port = sender_address_port[1]
 
-            #if msg is from server, assume it is the client table
-            #update table
-            if sender_ip_address==self.server_ip and sender_port == self.server_port:
-                #IF DEREG ACK from server
-                if message.decode().startswith("[DEREG]:"):
-                    #remove message_id from ack dict
-                    message_id = message.decode().split(":")[1]
-                    message_acks.pop(message_id, None)
-                    print("[You are Offline. Bye.]")
-                #IF REG ACK from server
-                elif message.decode()=="REG: No Offline Messages":
-                    print("[You have no offline messages]")
-                elif message.decode()=="REG: Offline Messages":
-                    print("[You have offline messages:]")
-                #offline-message
-                elif message.decode().startswith("[OFFLINE]"):
-                    msg = message.decode().split("[OFFLINE]")[1]
-                    #check to see if this is a delivery confirmation for a offline message
-                    if msg.startswith("[OFF]"):
-                        print(msg.split("[OFF]")[1])
-                    else:
-                        print(msg)
-                    sender = message.decode().split("[OFFLINE]")[1].split(":")[0]
-                    #extract original timestamp
-                    start_index = message.decode().index('<') + 1
-                    end_index = message.decode().index('>')
-                    timestamp = message.decode()[start_index:end_index]
-
-                    #send ACK back to server, confirming they received the offline message
-                    #[Offline Message sent at <timestamp> received by <receiver nickname>.]
-                    self.socket.sendto(str.encode(f"[OFFLINE ACK]{sender} {timestamp} {self.name}"),sender_address_port)
-
-                #Confirmation that offline message was received
-                elif message.decode().startswith("[OFFLINE CONFIRM]"):
-                    print(message.decode().split("[OFFLINE CONFIRM]")[1])
-
-                #IF OFFLINE ACK from server
-                elif message.decode().startswith("[Offline Message sent at"):
-                    print(message.decode())
-
-                #receiving GC message
-                elif message.decode().startswith("Group Chat "):
-                    #get message_id from message
-                    message_id = message.decode().split("Group Chat ")[1]
-                    message_id = message_id.split(" ")[0]
-
-                    #send ACK back to server
-                    self.socket.sendto(str.encode(f"[GC ACK]{message_id}"), (sender_address_port))
-
-                    #remove the message_id from printed message
-                    message = message.decode().split("Group Chat ")[1]
-                    message = "Group Chat "+message.split(" ",1)[1]
-                    #print message
-                    print(message)
-                    
-
-                #ACK for group chat message
-                elif message.decode().startswith("[GROUP ACK]"):
-                    #remove message_id from ack dict
-                    message_id = message.decode().split("[GROUP ACK]")[1]
-                    message_acks.pop(message_id, None)
-                    print("[Group Message received by Server.]")
-
-                #for GC, informing sender that client is not active
-                elif message.decode().startswith("[NO ACK]"):
-                    print(message.decode().split("[NO ACK]")[1])
-                
-                #Confirmation that we are still active
-                elif message.decode().startswith("[ONLINE CONFIRM]:"):
-                    message_id = message.decode().split("[ONLINE CONFIRM]:")[1]
-                    #send ACK to server
-                    self.socket.sendto(str.encode(f"[ONLINE ACK]:{message_id}"), sender_address_port)
-                
-                #Save Message Request Error, receiver client is active
-                elif message.decode().startswith("SAVE-MSG-ERROR:"):
-                    active_client = message.decode().split("SAVE-MSG-ERROR:")[1]
-                    print(f"[Client {active_client} exists!!]")
-
-                #else we are receiving updated table
-                else:
-                    #update client_table
-                    global client_table
-                    client_table = eval(message)
-                    print("[Client table updated.]")
-                    print(client_table)
-
-            #IF ACK For Message Received
-            elif message.decode().split("=")[0]=="ACK: Message Received":
-                sender_and_id = message.decode().split("=")[1]
-                sender = sender_and_id.split(" ")[0]
-                #remove message from ack queue
-                message_id = sender_and_id.split(" ")[1]
+        #if msg is from server, assume it is the client table
+        #update table
+        if sender_ip_address==server_ip and sender_port == server_port:
+            #IF DEREG ACK from server
+            if message.startswith("[DEREG]:"):
+                #remove message_id from ack dict
+                message_id = message.split(":")[1]
                 message_acks.pop(message_id, None)
-                print(f"[Message received by {sender}.]")
+                print("[You are Offline. Bye.]")
+            #IF REG ACK from server
+            elif message=="REG: No Offline Messages":
+                print("[You have no offline messages]")
+            elif message=="REG: Offline Messages":
+                print("[You have offline messages:]")
+            #offline-message
+            elif message.startswith("[OFFLINE]"):
+                msg = message.split("[OFFLINE]")[1]
+                #check to see if this is a delivery confirmation for a offline message
+                if msg.startswith("[OFF]"):
+                    print(msg.split("[OFF]")[1])
+                else:
+                    print(msg)
+                sender = message.split("[OFFLINE]")[1].split(":")[0]
+                #extract original timestamp
+                start_index = message.index('<') + 1
+                end_index = message.index('>')
+                timestamp = message[start_index:end_index]
+
+                #send ACK back to server, confirming they received the offline message
+                #[Offline Message sent at <timestamp> received by <receiver nickname>.]
+                client_socket.sendto(str.encode(f"[OFFLINE ACK]{sender} {timestamp} {client_name}"),sender_address_port)
+
+            #Confirmation that offline message was received
+            elif message.startswith("[OFFLINE CONFIRM]"):
+                print(message.split("[OFFLINE CONFIRM]")[1])
+
+            #IF OFFLINE ACK from server
+            elif message.startswith("[Offline Message sent at"):
+                print(message)
+
+            #receiving GC message
+            elif message.startswith("Group Chat "):
+                #get message_id from message
+                message_id = message.split("Group Chat ")[1]
+                message_id = message_id.split(" ")[0]
+
+                #send ACK back to server
+                client_socket.sendto(str.encode(f"[GC ACK]{message_id}"), (sender_address_port))
+
+                #remove the message_id from printed message
+                message = message.split("Group Chat ")[1]
+                message = "Group Chat "+message.split(" ",1)[1]
+                #print message
+                print(message)
                 
-                
+            #ACK for group chat message
+            elif message.startswith("[GROUP ACK]"):
+                #remove message_id from ack dict
+                message_id = message.split("[GROUP ACK]")[1]
+                message_acks.pop(message_id, None)
+                print("[Group Message received by Server.]")
+
+            #for GC, informing sender that client is not active
+            elif message.startswith("[NO ACK]"):
+                print(message.split("[NO ACK]")[1])
             
-            #else assume it is from client
-            #lookup client, print message
+            #Confirmation that we are still active
+            elif message.startswith("[ONLINE CONFIRM]:"):
+                message_id = message.split("[ONLINE CONFIRM]:")[1]
+                #send ACK to server
+                client_socket.sendto(str.encode(f"[ONLINE ACK]:{message_id}"), sender_address_port)
+            
+            #Save Message Request Error, receiver client is active
+            elif message.startswith("SAVE-MSG-ERROR:"):
+                active_client = message.split("SAVE-MSG-ERROR:")[1]
+                print(f"[Client {active_client} exists!!]")
+
+            #else we are receiving updated table
             else:
-                #find the name of the sender
-                sender_nickname = ""
-                for client in client_table:
-                    ip = client_table[client][0]
-                    port = client_table[client][1]
-                    if ip==sender_ip_address and port == sender_port:
-                        sender_nickname=client
-                #extract message_id
-                message_id = message.decode().split(":")[0]
-                #SEND ACK TO sender!!
-                self.socket.sendto(str.encode(f"ACK: Message Received={self.name} {message_id}"),sender_address_port)
-                #print out message from other client
-                print(sender_nickname+": "+message.decode().split(":")[1])
+                #update client_table
+                global client_table
+                client_table = eval(message)
+                print("[Client table updated.]")
+                print(client_table)
+
+        #IF ACK For Message Received
+        elif message.split("=")[0]=="ACK: Message Received":
+            sender_and_id = message.split("=")[1]
+            sender = sender_and_id.split(" ")[0]
+            #remove message from ack queue
+            message_id = sender_and_id.split(" ")[1]
+            message_acks.pop(message_id, None)
+            print(f"[Message received by {sender}.]")
+            
+        #else assume it is from client
+        #lookup client, print message
+        else:
+            #find the name of the sender
+            sender_nickname = ""
+            for client in client_table:
+                ip = client_table[client][0]
+                port = client_table[client][1]
+                if ip==sender_ip_address and port == sender_port:
+                    sender_nickname=client
+            #extract message_id
+            message_id = message.split(":")[0]
+            #SEND ACK TO sender!!
+            client_socket.sendto(str.encode(f"ACK: Message Received={client_name} {message_id}"),sender_address_port)
+            #print out message from other client
+            print(sender_nickname+": "+message.split(":")[1])
                 
 
 #send message between client-client, have timeout 
-def sender_client(message,client_socket,client_name,server_ip,server_port):
+def client_sender(message,client_socket,client_name,server_ip,server_port):
     global client_table
     message_id = str(uuid.uuid4())
     message_acks[message_id] = False
@@ -205,7 +192,6 @@ def sender_client(message,client_socket,client_name,server_ip,server_port):
     elif message == "dereg":
         # Create a new thread for sending the deregistration request
         deregistration_thread = threading.Thread(target=send_dereg, args=(client_socket,client_name,server_ip,server_port))
-        deregistration_thread.daemon = True
         # Start the thread
         deregistration_thread.start()
 
@@ -357,7 +343,6 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
         if server_table[receiver][2]==True:
             # Create a new thread for checking to see if client is online
             active_thread = threading.Thread(target=send_online_confirm, args=(receiver,client_address_port,server_socket,formatted_message,timestamp))
-            active_thread.daemon = True
             # Start the thread
             active_thread.start()
         else:
@@ -480,6 +465,15 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
     if broadcast:
         server_broadcast(server_socket)
 
+def check_port_num(port_num):
+        #invalid port #
+        try:
+            int(port_num)
+        except:
+             sys.exit(">>> [ERROR: Port number not an integer]")
+        if not 1024<=int(port_num)<=65535:
+            sys.exit(">>> [ERROR: Port number out of range, needs to be in range 1024-65535]")
+
 
 def main():
 
@@ -493,13 +487,8 @@ def main():
     #the port number should be an integer value in the range 1024-65535.
     if mode == "-s":
         server_port = sys.argv[2]
-        #invalid port #
-        try:
-            int(server_port)
-        except:
-             sys.exit(">>> [ERROR: Port number not an integer]")
-        if not 1024<=int(server_port)<=65535:
-            sys.exit(">>> [ERROR: Port number out of range, needs to be in range 1024-65535]")
+        #make sure it's a valid port number
+        check_port_num(server_port)
         #cast into int
         server_port = int(server_port)
 
@@ -534,7 +523,6 @@ def main():
 
                 #start a new thread to handle the received info
                 server_receiver_thread = threading.Thread(target=server_receiver, args=(server_socket,message,client_address_port,client_ip_address,client_port))
-                server_receiver_thread.daemon = True
                 server_receiver_thread.start()
 
         except KeyboardInterrupt:
@@ -551,19 +539,16 @@ def main():
         server_port = int(sys.argv[4])
         client_port = int(sys.argv[5])
 
-        #ADD checks for valid ip (decimal) & valid port number
-        if not 1024<=server_port<=65535:
-            print("[Invalid server port number, needs to be in range 1024-65535]")
+        #make sure client port is valid
+        check_port_num(client_port)
+        #make sure server port is valid
+        check_port_num(server_port)
+        #make sure server ip address is valid
+        try:
+            ipaddress.ip_address(server_ip)
+        except:
+            print(">>>[ERROR: Invalid ip address, needs to be in format of #.#.#.#]")
             sys.exit()
-        elif not 1024<=client_port<=65535:
-            print("[Invalid client port number, needs to be in range 1024-65535]")
-            sys.exit()
-        else:
-            try:
-                ipaddress.ip_address(server_ip)
-            except:
-                print("[Invalid ip address, needs to be in format of #.#.#.#]")
-                sys.exit()
 
         
         #get ip address of client machine
@@ -588,19 +573,16 @@ def main():
         if registraction_ack == "ACK: Registration Successful":
             print("[Welcome, You are registered.]")
 
-        # receive & sender threads for client created
-        receive = ClientReceive(client_socket, client_name, server_ip, server_port)
-         # sender = Send(self.sock, self.name)
-
-        receive.start()
+        # receiver thread created for client
+        receive_client_thread = threading.Thread(target=client_receiver, args=(client_socket, client_name, server_ip, server_port))
+        receive_client_thread.start()
 
         #send messages
         try:
             while(True):
                 try:
                     user_input = input(">>> ")
-                    send_thread = threading.Thread(target=sender_client, args=(user_input,client_socket,client_name,server_ip,server_port))
-                    send_thread.daemon = True
+                    send_thread = threading.Thread(target=client_sender, args=(user_input,client_socket,client_name,server_ip,server_port))
                     send_thread.start()
                 except KeyboardInterrupt:
                     # Handle Ctrl+C
