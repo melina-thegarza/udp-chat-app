@@ -30,10 +30,7 @@ def client_receiver(client_socket, client_name, server_ip, server_port):
         #message from sender
         entire_message = client_socket.recvfrom(65535)
         message = entire_message[0].decode()
-        
-        #remove eventually
-        if message == "q":
-            break
+        #get sender ip address and port
         sender_address_port = entire_message[1]
         sender_ip_address = sender_address_port[0]
         sender_port = sender_address_port[1]
@@ -158,7 +155,7 @@ def client_sender(message,client_socket,client_name,server_ip,server_port):
     #process send message 
     if message.split(" ")[0]=='send':
         receiver_name = message.split(" ")[1]
-        message_to_send = message.split(" ")[2]
+        message_to_send = message.split(" ",2)[2]
         #check online status of receiver 
         receiver_status = client_table[receiver_name][2]
 
@@ -226,11 +223,11 @@ def send_dereg(client_socket, client_name, server_ip, server_port):
     if retries == 5:
         print("[Server not responding]")
         print("[Exiting]")
-        #EXIT -> OH clarification, I belive control C
+        os._exit(0)    
 
 #send group chat message to server, have a timeout
 def send_group_chat(client_socket,client_name,server_ip,server_port, message):
-    message_to_send = message.split(" ")[1]
+    message_to_send = message.split(" ",1)[1]
     retries = 0
     while retries < 5:
         #add message to dict for ack
@@ -253,7 +250,7 @@ def send_group_chat(client_socket,client_name,server_ip,server_port, message):
     if retries == 5:
         print("[Server not responding]")
         print("[Exiting]")
-        #EXIT -> OH clarification, control C
+        os._exit(0)    
 
 #ping client to confirm whether or not it is still active
 def send_online_confirm(receiver, sender_info, server_socket, formatted_message, timestamp):
@@ -330,11 +327,10 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
             server_socket.sendto(str.encode("REG: No Offline Messages"),client_address_port)
     #save-message
     elif message.startswith("SAVE:"):
-        
         receiver = message.split(" ")[1]
         sender = message.split(" ")[2]
         timestamp = message.split(" ")[3] + " "+message.split(" ")[4]
-        message_to_save = message.split(" ")[5]
+        message_to_save = message.split(" ",5)[5]
         #REFORMAT THE MESSAGE: <name_sender>: <timestamp> <messsage>
         formatted_message = f"{sender}: <{timestamp}> {message_to_save}"
 
@@ -391,7 +387,7 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
     elif message.startswith("GROUP:"):
         message = message.split("GROUP:")[1]
         message_id = message.split(" ")[0]
-        message = message.split(" ")[1] + " " + message.split(" ")[2]
+        message = message.split(" ")[1] + " " + message.split(" ",2)[2]
         #send ACK back to sender
         server_socket.sendto(str.encode(f"[GROUP ACK]{message_id}"), client_address_port)
 
