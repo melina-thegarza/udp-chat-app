@@ -6,6 +6,7 @@ import datetime
 import ipaddress
 import time
 import uuid
+import os
 
 # Define the global server table
 server_table = {}
@@ -88,7 +89,19 @@ class ClientReceive(threading.Thread):
 
                 #receiving GC message
                 elif message.decode().startswith("Group Chat "):
-                    print(message.decode())
+                    #get message_id from message
+                    message_id = message.decode().split("Group Chat ")[1]
+                    message_id = message_id.split(" ")[0]
+
+                    #send ACK back to server
+                    self.socket.sendto(str.encode(f"[GC ACK]{message_id}"), (sender_address_port))
+
+                    #remove the message_id from printed message
+                    message = message.decode().split("Group Chat ")[1]
+                    message = "Group Chat "+message.split(" ",1)[1]
+                    #print message
+                    print(message)
+                    
 
                 #ACK for group chat message
                 elif message.decode().startswith("[GROUP ACK]"):
@@ -96,6 +109,10 @@ class ClientReceive(threading.Thread):
                     message_id = message.decode().split("[GROUP ACK]")[1]
                     message_acks.pop(message_id, None)
                     print("[Group Message received by Server.]")
+
+                #for GC, informing sender that client is not active
+                elif message.decode().startswith("[NO ACK]"):
+                    print(message.decode().split("[NO ACK]")[1])
                 
                 #Confirmation that we are still active
                 elif message.decode().startswith("[ONLINE CONFIRM]:"):
@@ -273,6 +290,7 @@ def send_online_confirm(receiver, sender_info, server_socket, formatted_message,
     #if no ACK received
     #change status of client to offline, broadcast to all active clients, save the message
     else:
+        #change status of client to offline,
         server_table[receiver][2]=False
         #broadcast
         server_broadcast(server_socket)
@@ -378,6 +396,11 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
         message_id = message.split("[ONLINE ACK]:")[1]
         message_acks.pop(message_id, None)
         broadcast = False
+    #GC ACK
+    elif message.startswith("[GC ACK]"):
+        message_id = message.split("[GC ACK]")[1]
+        message_acks.pop(message_id,None)
+        broadcast = False
     ##GROUP CHAT message
     elif message.startswith("GROUP:"):
         message = message.split("GROUP:")[1]
@@ -400,7 +423,35 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
             if server_table[client][2]==True:
                 #send gc message to active client
                 if gc_client_port!=client_port or gc_client_ip!=client_ip_address:
-                    server_socket.sendto(str.encode("Group Chat "+ message), (gc_client_ip,gc_client_port))
+                    ##ADD TIMEOUT and we need to confirm that ACK was received
+                    active_user_message_id = str(uuid.uuid4())
+                    message_acks[active_user_message_id] = False
+
+                    #send messsage
+                    server_socket.sendto(str.encode(f"Group Chat {active_user_message_id} "+ message), (gc_client_ip,gc_client_port))
+
+                    #100 msec timeout
+                    time.sleep(0.1)
+
+                    #check if ACK was not received
+                    if active_user_message_id in message_acks:
+                        #inform sender that ack wasn't received
+                        server_socket.sendto(str.encode(f"[NO ACK][No ACK from {client}, message sent to server.]"),client_address_port)
+                        
+                        #save message 
+                        msg_save = message.split(": ")[1]
+                        timestamp = datetime.datetime.now()
+                        formatted_message = f"Group Chat {sender_name}: <{timestamp}> {msg_save}"
+                        save_message[client].append(formatted_message) 
+
+                        #send ACK to sender client
+                        server_socket.sendto(str.encode(f"[Offline Message sent at <{timestamp}> received by the server and saved.]"),client_address_port)
+
+                        #change status of client to offline,
+                        server_table[client][2]=False
+                        #broadcast
+                        server_broadcast(server_socket)
+     
             else:
                 #save message for offline clients
                 #message to save
@@ -552,7 +603,8 @@ def main():
                     send_thread.start()
                 except KeyboardInterrupt:
                     # Handle Ctrl+C
-                    sys.exit(">>> Exiting...")        
+                    print(">>> Exiting...")
+                    os._exit(0)        
                 
 
         except Exception as e:
