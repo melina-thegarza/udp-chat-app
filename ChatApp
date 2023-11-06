@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys
 import socket
-import json
 import threading
 import datetime
 import ipaddress
@@ -493,13 +492,16 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
     
     #initial registration of client
     else:
-        #represents table with client-name as key
-        server_table[message] = [client_ip_address,client_port,True]
-        #create entry in save-message table for new client
-        if message not in save_message:
+        #make sure that user isn't trying to log in with already connected nickname
+        if message not in server_table:
+            #represents table with client-name as key
+            server_table[message] = [client_ip_address,client_port,True]
+            #create entry in save-message table for new client
             save_message[message] = []
-        #send ack for client registration
-        server_socket.sendto(str.encode("ACK: Registration Successful"),client_address_port)
+            #send ack for client registration
+            server_socket.sendto(str.encode("ACK: Registration Successful"),client_address_port)
+        else:
+            server_socket.sendto(str.encode(">>> [ERROR: User already exists, try another nickname"),client_address_port)
 
     #BROADCAST TO THE ALL OF THE CLIENTS, the new updated client table
     if broadcast:
@@ -608,12 +610,16 @@ def main():
 
         ##successful registration?
         request = client_socket.recvfrom(65535)
-        registraction_ack = request[0].decode()
-       
-        if registraction_ack == "ACK: Registration Successful":
+        registration_ack = request[0].decode()
+      
+        #make sure we receive positive ACK for registration
+        if registration_ack == "ACK: Registration Successful":
             print("[Welcome, You are registered.]")
             global client_registration_status
             client_registration_status = True
+        elif registration_ack.startswith(">>> [ERROR"):
+            print(registration_ack)
+            sys.exit()
 
         # receiver thread created for client
         receive_client_thread = threading.Thread(target=client_receiver, args=(client_socket, client_name, server_ip, server_port))
