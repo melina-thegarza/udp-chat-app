@@ -1,5 +1,5 @@
 TEST CASE #1: 
-If the original sender is offline, add the delivery confirmation(s) to the sender’s offline messages
+Offline Messaging: If the original sender is offline, include delivery confirmation in their offline messages when they return.
 
 1. start server: `./ChatApp -s 9000`
 >>>
@@ -57,11 +57,76 @@ x,y,z: >>> Exiting...
 ______________________
 
 TEST CASE #2: 
+Offline Chatting in Group Chats: Silent Leave vs Notified Leave
+
+1. start server: `./ChatApp -s 9000`
+>>>
+
+2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True]}
+
+3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+
+4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+
+5. SILENT LEAVE: `ctrl + c` client y
+>>> Exiting...
+
+6. send group message from x (server will try active client y, not receive ACK, and then update table): `send_all failure`
+x: 
+>>> [Group Message received by Server.]
+[No ACK from y, message sent to server.]
+[Offline Message sent at <2023-11-06 22:51:57.141384> received by the server and saved.]
+[Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+
+z:
+[Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+>>> Group Chat x: failure
+
+server:
+[Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+
+7. server, x, z: exit(ctrl + c)
+
+8. Repeat steps 1-4, restart the server and 3 clients
+
+9. NOTIFIED LEAVE: dereg y `dereg`
+>>> [You are Offline. Bye.]
+
+10. send group message from x: `send_all success`
+x:
+>>> [Group Message received by Server.]
+>>> [y is offline, sending save-message request to server]
+[Offline Message sent at <2023-11-06 23:00:52.536366> received by the server and saved.]
+
+z:
+>>> Group Chat x: success
+
+11. reg y: `reg`
+>>> [You have offline messages:]
+>>> Group Chat x: <2023-11-06 23:00:52.536366> success
+[Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+
+12. server, x, y, z: exit(ctrl + c)
+server: Stoping Server...
+x,y,z: >>> Exiting...
 
 ______________________
 
 TEST CASE #3: 
-Server down for Group Chat
+Server Unavailability for Group Chats
 
 1. start server: `./ChatApp -s 9000`
 >>>
@@ -100,8 +165,10 @@ z: >>> y: still works
 8. y, z: exit(ctrl + c)
 y,z: >>> Exiting...
 
+______________________
+
 TEST CASE #4: 
-General Error Handling
+Error Handling: Handling Invalid Commands, Duplicate User Registration, and Invalid Port Numbers/IP Addresses
 
 1. start server: `./ChatApp -s 9000`
 >>>
@@ -133,7 +200,10 @@ General Error Handling
 7. Try to register a client with the same name as an already active client: `./ChatApp -c x 10.150.0.2 9000 4000`
 >>> [ERROR: User already exists, try another nickname]
 
-8. In another terminal, run the following commands:
+8. Try to send to a client that doesn't exist a message, chat x->fake: `send fake hello`
+>>>[Invalid Command, client doesn't exist]
+
+9. In another terminal, run the following commands:
 
     Invalid port numbers for server/client port number:
     a. `./ChatApp -c new-client 10.150.0.2 9000 4`
@@ -142,20 +212,22 @@ General Error Handling
     >>> [ERROR: Port number not an integer]
     c. `./ChatApp -c new-client 10.150.0.2 wrong 4888`
     >>> [ERROR: Port number not an integer]
-    d. ./ChatApp -c new-client 10.150.0.2 90 4888
+    d. `./ChatApp -c new-client 10.150.0.2 90 4888`
     >>> [ERROR: Port number out of range, needs to be in range 1024-65535]
 
     Invalid IP address for server:
-    a. `./ChatApp -c new-client ip-server 9000 4090`
+    e. `./ChatApp -c new-client ip-server 9000 4090`
     >>>[ERROR: Invalid ip address, needs to be in format of #.#.#.#]
     
-9. server exit: ctrl + c 
+10. server exit: ctrl + c 
 Stoping Server...
 
-10. Wrong number of arguments:
+11. Wrong number of arguments:
     SERVER
     a. start server again `./ChatApp -s 9000 extra`
     >>> [ERROR: Incorrect number of arguments]
     CLIENT
     b. start a new client `./ChatApp -c new-client 10.150.0.2`
     >>> [ERROR: Incorrect number of arguments]
+
+12. server, x, y: exit(ctrl + c)
