@@ -17,6 +17,9 @@ client_table = {}
 message_acks = {}
 #holds offline messages for each client
 save_message = {}
+#keep track of registration status of client
+client_registration_status = False
+
 
 def handle_message(message):
     #handle received messages
@@ -150,55 +153,96 @@ def client_receiver(client_socket, client_name, server_ip, server_port):
 #send message between client-client, have timeout 
 def client_sender(message,client_socket,client_name,server_ip,server_port):
     global client_table
-    message_id = str(uuid.uuid4())
-    message_acks[message_id] = False
+    global client_registration_status
+
     #process send message 
     if message.split(" ")[0]=='send':
-        receiver_name = message.split(" ")[1]
-        message_to_send = message.split(" ",2)[2]
-        #check online status of receiver 
-        receiver_status = client_table[receiver_name][2]
+        #make sure client is registered/active
+        if client_registration_status:
+            #make sure correct number of args
+            args = message.split(" ")
+            if len(args) <3:
+                print(">>> [Invalid command, incorrect number of arguments.]")
+                return
+            #make sure that the receving client exists
+            receiver_name = args[1]
+            if receiver_name not in client_table:
+                print(">>>[Invalid Command, client doesn't exist]")
+                return
 
-        #online, try to send message
-        if receiver_status:
-            receiver_ip = client_table[receiver_name][0]
-            receiver_port = client_table[receiver_name][1]
-            #send message to specified client
-            message_to_send = f"{message_id}:{message_to_send}"
-            client_socket.sendto(str.encode(message_to_send),(receiver_ip,receiver_port))
-            #wait for ACK, 100 msec
-            time.sleep(.1)
-            if message_id in message_acks:
-                #send message to server to be saved
+            #add message_id to ack dict, needs to be ACKed
+            message_id = str(uuid.uuid4())
+            message_acks[message_id] = False
+            message_to_send = message.split(" ",2)[2]
+            #check online status of receiver 
+            receiver_status = client_table[receiver_name][2]
+
+            #online, try to send message
+            if receiver_status:
+                receiver_ip = client_table[receiver_name][0]
+                receiver_port = client_table[receiver_name][1]
+                #send message to specified client
+                message_to_send = f"{message_id}:{message_to_send}"
+                client_socket.sendto(str.encode(message_to_send),(receiver_ip,receiver_port))
+                #wait for ACK, 100 msec
+                time.sleep(.1)
+                if message_id in message_acks:
+                    #send message to server to be saved
+                    save_msg = f"SAVE: {receiver_name} {client_name} {datetime.datetime.now()} {message_to_send}"
+                    client_socket.sendto(str.encode(save_msg),(server_ip,server_port))
+                    #print confirmation of no ACK
+                    print(f"[No ACK from {receiver_name}, message sent to server.]")
+                
+
+            #offline, send save-message to server
+            else:
                 save_msg = f"SAVE: {receiver_name} {client_name} {datetime.datetime.now()} {message_to_send}"
                 client_socket.sendto(str.encode(save_msg),(server_ip,server_port))
-                #print confirmation of no ACK
-                print(f"[No ACK from {receiver_name}, message sent to server.]")
-               
-
-        #offline, send save-message to server
         else:
-            save_msg = f"SAVE: {receiver_name} {client_name} {datetime.datetime.now()} {message_to_send}"
-            client_socket.sendto(str.encode(save_msg),(server_ip,server_port))
+            print(">>> [Invalid command, not registered]")
 
     #groupchat
     elif message.split(" ")[0]=="send_all":
-       send_group_chat(client_socket,client_name,server_ip,server_port,message)
-
+       if client_registration_status:
+            #check number of args
+            args = message.split(" ")
+            if len(args) > 1:
+                send_group_chat(client_socket,client_name,server_ip,server_port,message)
+            else:
+                print(">>> [Invalid command, incorrect number of arguments]")
+       else:
+           print(">>> [Invalid command, not registered]")
+    
     #deregistration
     elif message == "dereg":
-        # Create a new thread for sending the deregistration request
-        deregistration_thread = threading.Thread(target=send_dereg, args=(client_socket,client_name,server_ip,server_port))
-        # Start the thread
-        deregistration_thread.start()
+        if client_registration_status:
+            # Create a new thread for sending the deregistration request
+            deregistration_thread = threading.Thread(target=send_dereg, args=(client_socket,client_name,server_ip,server_port))
+            # Start the thread
+            deregistration_thread.start()
+        else:
+            print(">>> [Invalid command, not registered]")
 
     #re-register
     elif message == "reg":
-        #send reg message to server
-        client_socket.sendto(str.encode(f"REG:{client_name}"),(server_ip,server_port))  
+        #make sure client isn't alredy registered
+        if client_registration_status==False:
+            #update registration status
+            client_registration_status = True
+            #send reg message to server
+            client_socket.sendto(str.encode(f"REG:{client_name}"),(server_ip,server_port))
+        else:
+            print(">>> [Invalid command, client already registered]")
+
+    #invalid command
+    else:
+        print(">>> [Invalid command]")  
         
 #send dereg request to server, confirm ACK
 def send_dereg(client_socket, client_name, server_ip, server_port):
+    #change registration status of client
+    global client_registration_status
+    client_registration_status = False
     
     # Set a timeout of 100 milliseconds for receiving an ACK
     # client_socket.settimeout(0.1)
@@ -568,6 +612,8 @@ def main():
        
         if registraction_ack == "ACK: Registration Successful":
             print("[Welcome, You are registered.]")
+            global client_registration_status
+            client_registration_status = True
 
         # receiver thread created for client
         receive_client_thread = threading.Thread(target=client_receiver, args=(client_socket, client_name, server_ip, server_port))
