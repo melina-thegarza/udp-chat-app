@@ -1,0 +1,161 @@
+TEST CASE #1: 
+If the original sender is offline, add the delivery confirmation(s) to the sender’s offline messages
+
+1. start server: `./ChatApp -s 9000`
+>>>
+
+2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True]}
+
+3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+
+4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+
+5. dereg y: `dereg`
+>>> [You are Offline. Bye.]
+
+6. chat x->y (send to server): `send y hello`
+>>> [y is offline, sending save-message request to server]
+>>> [Offline Message sent at <2023-11-06 20:54:42.672033> received by the server and saved.]
+
+7. send group message from x(z should receive immediately, stored for y): `send_all hello world`
+>>> [Group Message received by Server.]
+>>> [y is offline, sending save-message request to server]
+[Offline Message sent at <2023-11-06 20:56:00.866154> received by the server and saved.]
+
+8. dereg x: `dereg`
+>>> [You are Offline. Bye.]
+
+9. reg y: `reg`
+>>> [You have offline messages:]
+>>> x: <2023-11-06 20:54:42.672033> hello
+>>> Group Chat x: <2023-11-06 20:56:00.866154> hello world
+[Client table updated.]
+{'x': ['10.150.0.2', 3000, False], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+
+10. reg x(receive delivery confirmation from saved messages): `reg`
+>>> [You have offline messages:]
+[Offline Message sent at <2023-11-06 20:54:42.672033> received by y.]
+[Offline Message sent at <2023-11-06 20:56:00.866154> received by y.]
+[Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+
+11. server, x, y, z: exit(ctrl + c)
+server: Stoping Server...
+x,y,z: >>> Exiting...
+
+
+
+______________________
+
+TEST CASE #2: 
+
+______________________
+
+TEST CASE #3: 
+Server down for Group Chat
+
+1. start server: `./ChatApp -s 9000`
+>>>
+
+2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True]}
+
+3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+
+4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+
+5. server exit: ctrl + c 
+Stoping Server...
+
+6. send group message from x(send_all will fail, x should make 5 attempts, printing each attempt, and then exit): `send_all not working`
+>>> Retrying..
+Retrying..
+Retrying..
+Retrying..
+Retrying..
+[Server not responding]
+[Exiting]
+
+7. send message y->z: `send z still works`
+y: >>> [Message received by z.]
+z: >>> y: still works
+
+8. y, z: exit(ctrl + c)
+y,z: >>> Exiting...
+
+TEST CASE #4: 
+General Error Handling
+
+1. start server: `./ChatApp -s 9000`
+>>>
+
+2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True]}
+
+3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+>>> [Welcome, You are registered.]
+>>> [Client table updated.]
+{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+
+4. dereg y: `dereg`
+>>> [You are Offline. Bye.]
+
+5. Invalid commands while deregistered for y(send, send_all, dereg)
+ a. chat y->x: `send x hello`
+ >>> [Invalid command, not registered]
+ b. send group message from y: 'send_all hello`
+ >>> [Invalid command, not registered]
+ c. dereg y: `dereg`
+ >>> [Invalid command, not registered]
+
+6. Invalid command while registered for x(reg): `reg`
+>>> [Invalid command, client already registered]
+
+7. Try to register a client with the same name as an already active client: `./ChatApp -c x 10.150.0.2 9000 4000`
+>>> [ERROR: User already exists, try another nickname]
+
+8. In another terminal, run the following commands:
+
+    Invalid port numbers for server/client port number:
+    a. `./ChatApp -c new-client 10.150.0.2 9000 4`
+    >>> [ERROR: Port number out of range, needs to be in range 1024-65535]
+    b. `./ChatApp -c new-client 10.150.0.2 9000 not-port`
+    >>> [ERROR: Port number not an integer]
+    c. `./ChatApp -c new-client 10.150.0.2 wrong 4888`
+    >>> [ERROR: Port number not an integer]
+    d. ./ChatApp -c new-client 10.150.0.2 90 4888
+    >>> [ERROR: Port number out of range, needs to be in range 1024-65535]
+
+    Invalid IP address for server:
+    a. `./ChatApp -c new-client ip-server 9000 4090`
+    >>>[ERROR: Invalid ip address, needs to be in format of #.#.#.#]
+    
+9. server exit: ctrl + c 
+Stoping Server...
+
+10. Wrong number of arguments:
+    SERVER
+    a. start server again `./ChatApp -s 9000 extra`
+    >>> [ERROR: Incorrect number of arguments]
+    CLIENT
+    b. start a new client `./ChatApp -c new-client 10.150.0.2`
+    >>> [ERROR: Incorrect number of arguments]
