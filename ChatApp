@@ -70,7 +70,7 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
             #add entry into save-message table
             save_message[receiver].append(formatted_message) 
             #send ACK to sender client
-            server_socket.sendto(str.encode(f"[Offline Message sent at <{timestamp}> received by the server and saved.]"),client_address_port)
+            server_socket.sendto(str.encode(f"[OFFLINE ACK]:[Offline Message sent at <{timestamp}> received by the server and saved.]"),client_address_port)
         broadcast=False
     #ACK TO OFFLINE message
     elif message.startswith("[OFFLINE ACK]"):
@@ -151,7 +151,7 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
                         save_message[client].append(formatted_message) 
 
                         #send ACK to sender client
-                        server_socket.sendto(str.encode(f"[Offline Message sent at <{timestamp}> received by the server and saved.]"),client_address_port)
+                        server_socket.sendto(str.encode(f"[OFFLINE ACK]:[Offline Message sent at <{timestamp}> received by the server and saved.]"),client_address_port)
 
                         #change status of client to offline,
                         server_table[client][2]=False
@@ -167,7 +167,7 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
                 save_message[client].append(formatted_message) 
 
                 #send ACK to sender client
-                server_socket.sendto(str.encode(f"[Offline Message sent at <{timestamp}> received by the server and saved.]"),client_address_port)
+                server_socket.sendto(str.encode(f"[OFFLINE ACK]:>>> [{client} is offline, sending save-message request to server]\n[Offline Message sent at <{timestamp}> received by the server and saved.]"),client_address_port)
                 
         broadcast = False
     
@@ -217,7 +217,7 @@ def send_online_confirmation(receiver, sender_info, server_socket, formatted_mes
         #save message
         save_message[receiver].append(formatted_message) 
         #send ACK to sender client
-        server_socket.sendto(str.encode(f"[Offline Message sent at <{timestamp}> received by the server and saved.]"),sender_info)
+        server_socket.sendto(str.encode(f"[OFFLINE ACK]:[Offline Message sent at <{timestamp}> received by the server and saved.]"),sender_info)
 
 #broadcast client table to all active clients
 def server_broadcast(server_socket):
@@ -270,7 +270,7 @@ def client_handle_message(client_socket, client_name, server_ip, server_port, me
                 if msg.startswith("[OFF]"):
                     print(msg.split("[OFF]")[1])
                 else:
-                    print(msg)
+                    print(">>> "+msg)
                 sender = message.split("[OFFLINE]")[1].split(":")[0]
                 #extract original timestamp
                 start_index = message.index('<') + 1
@@ -286,8 +286,8 @@ def client_handle_message(client_socket, client_name, server_ip, server_port, me
                 print(message.split("[OFFLINE CONFIRM]")[1])
 
             #IF OFFLINE ACK from server
-            elif message.startswith("[Offline Message sent at"):
-                print(message)
+            elif message.startswith("[OFFLINE ACK]:"):
+                print(message.split("[OFFLINE ACK]:")[1])
 
             #receiving GC message
             elif message.startswith("Group Chat "):
@@ -302,7 +302,7 @@ def client_handle_message(client_socket, client_name, server_ip, server_port, me
                 message = message.split("Group Chat ")[1]
                 message = "Group Chat "+message.split(" ",1)[1]
                 #print message
-                print(message)
+                print(">>> "+message)
                 
             #as the sender, ACK for group chat message
             elif message.startswith("[GROUP ACK]"):
@@ -358,7 +358,7 @@ def client_handle_message(client_socket, client_name, server_ip, server_port, me
             #SEND ACK TO sender!!
             client_socket.sendto(str.encode(f"ACK: Message Received={client_name} {message_id}"),sender_address_port)
             #print out message from other client
-            print(sender_nickname+": "+message.split(":")[1])
+            print(">>> "+sender_nickname+": "+message.split(":")[1])
 
 #send message between client-client, have timeout 
 def client_sender(message,client_socket,client_name,server_ip,server_port):
@@ -406,6 +406,7 @@ def client_sender(message,client_socket,client_name,server_ip,server_port):
 
             #offline, send save-message to server
             else:
+                print(f">>> [{receiver_name} is offline, sending save-message request to server]")
                 save_msg = f"SAVE: {receiver_name} {client_name} {datetime.datetime.now()} {message_to_send}"
                 client_socket.sendto(str.encode(save_msg),(server_ip,server_port))
         else:
@@ -608,7 +609,7 @@ def main():
       
         #make sure we receive positive ACK for registration
         if registration_ack == "ACK: Registration Successful":
-            print("[Welcome, You are registered.]")
+            print(">>> [Welcome, You are registered.]")
             global client_registration_status
             client_registration_status = True
         elif registration_ack.startswith(">>> [ERROR"):
