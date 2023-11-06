@@ -32,10 +32,37 @@ Start the client
 
 
 ## PROGRAM FEATURES
+### Registered client can:
+#### Send Direct Messages
+- send
+  
+  ex. `send client1 hi`
+  
+#### Send Group Messages
+- send_all
+  
+  ex. `send_all hello`
+  
+#### Deregister
+- `dereg`
+
+### Deregistered client can:
+- `reg`
 
 ## CODE EXPLANATION
 - global vars explanation
 - threads etc.
+
+## FUNCTIONS IMPLEMENTED
+1. **server_receiver**: thread to handle messages received by the server
+2. **send_online_confirmation**: when the server receives a save-message request, we need to confirm whether or not a client is online
+3. **server_broadcast**: called when we need the server to broadcast the client_table to all online/active clients
+4. **client_receiver**: thread to handle messages received by a client, creates a separate thread to handle actual message(client_handle_message)
+5. **client_handle_message**: parses received messages for the client and prints messages to the console
+6. **client_sender**: given client input, a client_sender thread is started which is responsible for sending the message and keeping track of ACKs
+7. **send_dereg**: when a client `dereg`, this thread handles the deregistration process including timeout and exiting if no ACK is received
+8. **send_group_chat**: when a client sends a group chat message, this thread handles sending the message to the server, the timeout, and ensuring that the request is ACKed
+9. **check_port_num**: checks to make sure that the given input is a valid port number
 
 ## KNOWN BUGS
 - ">>> " is not always displayed at the bottom of the console waiting for input, but if you type in valid commands everything works as expected
