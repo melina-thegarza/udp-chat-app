@@ -7,6 +7,7 @@ import ipaddress
 import time
 import uuid
 import os
+import asyncio
 
 # Define the global server table
 server_table = {}
@@ -20,20 +21,8 @@ save_message = {}
 client_registration_status = False
 
 
-def handle_message(message):
-    #handle received messages
-    print("TO DO")
-
-#thread to receive client messages/ACKs
-def client_receiver(client_socket, client_name, server_ip, server_port):
-    #listen for incoming message
-    while(True):
-       
-        #message from sender
-        entire_message = client_socket.recvfrom(65535)
-        message = entire_message[0].decode()
+def client_handle_message(client_socket, client_name, server_ip, server_port, message,sender_address_port):
         #get sender ip address and port
-        sender_address_port = entire_message[1]
         sender_ip_address = sender_address_port[0]
         sender_port = sender_address_port[1]
 
@@ -147,7 +136,20 @@ def client_receiver(client_socket, client_name, server_ip, server_port):
             client_socket.sendto(str.encode(f"ACK: Message Received={client_name} {message_id}"),sender_address_port)
             #print out message from other client
             print(sender_nickname+": "+message.split(":")[1])
-                
+
+#thread to receive client messages/ACKs
+def client_receiver(client_socket, client_name, server_ip, server_port):
+    #listen for incoming message
+    while(True):
+       
+        #message from sender
+        entire_message = client_socket.recvfrom(65535)
+        message = entire_message[0].decode()
+        sender_address_port = entire_message[1]
+
+        #create a new thread to handle received message
+        handle_message_thread = threading.Thread(target=client_handle_message, args=(client_socket, client_name, server_ip, server_port,message,sender_address_port))
+        handle_message_thread.start()
 
 #send message between client-client, have timeout 
 def client_sender(message,client_socket,client_name,server_ip,server_port):
@@ -522,12 +524,15 @@ def main():
     #2.1 Registration
     #ChatApp <mode> <command-line arguments>
     mode = sys.argv[1]
-    numOfArgs = len(sys.argv)
 
     #server registration
     #$ ChatApp -s <port>
     #the port number should be an integer value in the range 1024-65535.
     if mode == "-s":
+        #correct number of args
+        if len(sys.argv)!=3:
+            sys.exit(">>> [ERROR: Incorrect number of arguments]")
+
         server_port = sys.argv[2]
         #make sure it's a valid port number
         check_port_num(server_port)
@@ -576,6 +581,10 @@ def main():
     #client registration
     #$ ChatApp -c <name> <server-ip> <server-port> <client-port>
     if mode== "-c":
+        #correct number of args
+        if len(sys.argv)!=6:
+            sys.exit(">>> [ERROR: Incorrect number of arguments]")
+
         client_name = sys.argv[2]
         server_ip = sys.argv[3]
         server_port = int(sys.argv[4])
