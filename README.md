@@ -16,9 +16,11 @@ Set permissions
   
   `./ChatApp -c <client-name> <server-ip(from the above command)> <server-port> <client-port>`
 
-## PROGRAM FEATURES: functions implemented
+## PROGRAM FEATURES
 
 ## CODE EXPLANATION
+- global vars explanation
+- threads etc.
 
 ## KNOWN BUGS
 
