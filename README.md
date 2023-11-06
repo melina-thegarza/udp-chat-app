@@ -88,12 +88,12 @@ To ensure no blocking occurs, both the server and client have threads to separat
 - ">>> " is not always displayed at the bottom of the console waiting for input, but if you type in valid commands everything works as expected
 
 ## TEST CASES
-1. 
+1. If the original sender is offline, add the delivery confirmation(s) to the sender’s offline messages
 
-2.
+2. Offline Chatting[Notified leave vs Silent leave]
 
-3.
+3. Server down for Group Chat
 
-4.
+4. General Error Handling[Invalid Commands, Cannot reg with same name, Invalid Port #'s/IP]
 
 **See test.txt for output samples**
