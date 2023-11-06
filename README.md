@@ -50,8 +50,28 @@ Start the client
 - `reg`
 
 ## CODE EXPLANATION
-- global vars explanation
-- threads etc.
+### Global variables
+#### Client Tables(`server_table` & `client_table`)
+- Used a dictionary to keep track of clients:  {key=client-name, value= list[ip_address, port #, status]}
+#### Saving Offline Messages
+- Used a dictionary, `save_message` to keep track of offline messages for each user: {key=client_name, value = list[message1, message2,...]}
+#### Client Status
+- Created a global boolean variable `client_registration_status` to keep track of whether the client is registered or deregistered.
+- Used to limit user input based on status
+#### Message ACK tracking
+- Used a dictionary,`message_acks`, as a ledger to keep track of which messages have not been ACKed
+- Each time a message is ACKed, its ID is removed from `message_acks`
+ 
+### Threads
+To ensure no blocking occurs, both the server and client have threads to separate the handling of receiving and sending messages.
+
+**Server Receiver Thread:** Handles messages received by the server from clients. Processes various message types, and creates new threads for message handling.
+
+**Client Receiver Thread:** Listens for messages received by clients from the server or other clients and creates new threads for message handling.
+
+**Client Handle Message Thread:** Processes messages received by clients, distinguishing between server and client messages, and sends acknowledgments.
+
+**Client Sender Thread:** Sends messages from clients to other clients or the server, ensuring valid commands and handling acknowledgments.
 
 ## FUNCTIONS IMPLEMENTED
 1. **server_receiver**: thread to handle messages received by the server
