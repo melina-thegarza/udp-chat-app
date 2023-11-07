@@ -13,7 +13,7 @@ Set permissions
 ### Starting the Server
 `./ChatApp -s <port #>`
 ### Starting the Client
-Get the IP address of the server/VM(in the Google Cloud console)
+Get the IPv4 address for ens4 of the server/VM(in the Google Cloud console)
   
   `ip addr show scope global | grep -oP 'inet \K[\d.]+'`
   
@@ -76,13 +76,17 @@ To ensure no blocking occurs, both the server and client have threads to separat
 
 
 ## KNOWN BUGS
-Issue: The ">>> " prompt sometimes starts a newline when prompting for user input, and it is not always displayed at the bottom of the console, waiting for input.
+- Issue: The ">>> " prompt sometimes starts a new line when prompting for user input, and it is not always displayed at the bottom of the console, waiting for input.
 
 ex.
 
  ">>>"
 
   send client1 message
+  
+- Issue: server binding to 0.0.0.0 has different behavior on local and Google Cloud environments
+  - Locally to start the server you can run `./ChatApp 9000` and then start a client `./ChatApp -c client 127.0.0.1 9000 4090` and everything works as expected. However, on Google Cloud, the server sends its IP address as the IPv4 address for ens4(ex. 10.150.0.2) instead of 127.0.0.1. Thus, we have to know the IPv4 address for the VM for it to work in Google Cloud.
+- Note: The server accepts messages on both 127.0.0.1 and its IPv4 address, however, the server socket only sends as either 127.0.01(locally) or as its IPv4 address(Google Cloud).
 
 ## FUNCTIONS IMPLEMENTED
 1. **server_receiver**: thread to handle messages received by the server
