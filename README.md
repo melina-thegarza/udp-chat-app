@@ -1,5 +1,6 @@
 # Programming Assignment 1 - Simple Chat Application
-Melina Garza, mjg2290
+Name: Melina Garza
+Uni: mjg2290
 
 ## DESCRIPTION
 This programming assignment aims to create a user-friendly chat application that enables multiple clients to interact with each other using User Datagram Protocol (UDP). The application is designed as a single program with dual functionalities: client mode and server mode. In client mode, users can communicate directly with each other, akin to private conversations. Meanwhile, in server mode, the application provides central control for managing clients and offers a platform for group conversations.
@@ -85,8 +86,13 @@ To ensure no blocking occurs, both the server and client have threads to separat
 9. **check_port_num**: checks to make sure that the given input is a valid port number
 
 ## KNOWN BUGS
-- ">>> " is not always displayed at the bottom of the console waiting for input, but if you type in valid commands everything works as expected
+Issue: The ">>> " prompt sometimes starts a newline when prompting for user input, and it is not always displayed at the bottom of the console, waiting for input.
 
+ex.
+
+ ">>>"
+
+  send client1 message
 ## TEST CASES
 1. Offline Messaging: If the original sender is offline, include delivery confirmation in their offline messages when they return.
 

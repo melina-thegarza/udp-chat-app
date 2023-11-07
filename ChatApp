@@ -359,6 +359,7 @@ def client_handle_message(client_socket, client_name, server_ip, server_port, me
             client_socket.sendto(str.encode(f"ACK: Message Received={client_name} {message_id}"),sender_address_port)
             #print out message from other client
             print(">>> "+sender_nickname+": "+message.split(":")[1])
+        print(">>>")
 
 #send message between client-client, have timeout 
 def client_sender(message,client_socket,client_name,server_ip,server_port):

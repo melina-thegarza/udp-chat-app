@@ -8,45 +8,61 @@ Offline Messaging: If the original sender is offline, include delivery confirmat
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True]}
+>>>
 
 3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+>>>
 
 4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+>>>
 
 5. dereg y: `dereg`
 >>> [You are Offline. Bye.]
+>>>
 
 6. chat x->y (send to server): `send y hello`
 >>> [y is offline, sending save-message request to server]
->>> [Offline Message sent at <2023-11-06 20:54:42.672033> received by the server and saved.]
+>>> [Offline Message sent at <2023-11-07 00:57:25.769455> received by the server and saved.]
+>>>
 
-7. send group message from x(z should receive immediately, stored for y): `send_all hello world`
+7. send group message from x (z should receive immediately, stored for y): `send_all hello world`
 >>> [Group Message received by Server.]
+>>>
 >>> [y is offline, sending save-message request to server]
-[Offline Message sent at <2023-11-06 20:56:00.866154> received by the server and saved.]
+[Offline Message sent at <2023-11-07 00:58:37.207576> received by the server and saved.]
+>>>
 
 8. dereg x: `dereg`
 >>> [You are Offline. Bye.]
+>>>
 
 9. reg y: `reg`
 >>> [You have offline messages:]
->>> x: <2023-11-06 20:54:42.672033> hello
->>> Group Chat x: <2023-11-06 20:56:00.866154> hello world
+>>>
+>>> x: <2023-11-07 00:57:25.769455> hello
+>>>
+>>> Group Chat x: <2023-11-07 00:58:37.207576> hello world
+>>>
 [Client table updated.]
 {'x': ['10.150.0.2', 3000, False], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+>>>
 
 10. reg x(receive delivery confirmation from saved messages): `reg`
 >>> [You have offline messages:]
-[Offline Message sent at <2023-11-06 20:54:42.672033> received by y.]
-[Offline Message sent at <2023-11-06 20:56:00.866154> received by y.]
+>>>
+[Offline Message sent at <2023-11-07 00:57:25.769455> received by y.]
+>>>
+[Offline Message sent at <2023-11-07 00:58:37.207576> received by y.]
+>>>
 [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+>>>
 
 11. server, x, y, z: exit(ctrl + c)
 server: Stoping Server...
@@ -66,36 +82,46 @@ Offline Chatting in Group Chats: Silent Leave vs Notified Leave
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True]}
+>>>
 
 3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+>>>
 
 4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+>>>
 
 5. SILENT LEAVE: `ctrl + c` client y
 >>> Exiting...
 
 6. send group message from x (server will try active client y, not receive ACK, and then update table): `send_all failure`
-x: 
+x output: 
 >>> [Group Message received by Server.]
+>>>
 [No ACK from y, message sent to server.]
-[Offline Message sent at <2023-11-06 22:51:57.141384> received by the server and saved.]
+>>>
+[Offline Message sent at <2023-11-07 01:04:26.274885> received by the server and saved.]
+>>>
 [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+>>>
 
-z:
+z output:
 [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+>>>
 >>> Group Chat x: failure
+>>>
 
-server:
+server output:
 [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+>>> 
 
 7. server, x, z: exit(ctrl + c)
 
@@ -103,21 +129,28 @@ server:
 
 9. NOTIFIED LEAVE: dereg y `dereg`
 >>> [You are Offline. Bye.]
+>>>
 
 10. send group message from x: `send_all success`
-x:
+x output:
 >>> [Group Message received by Server.]
+>>>
 >>> [y is offline, sending save-message request to server]
-[Offline Message sent at <2023-11-06 23:00:52.536366> received by the server and saved.]
+[Offline Message sent at <2023-11-07 01:07:14.852733> received by the server and saved.]
+>>>
 
-z:
+z output:
 >>> Group Chat x: success
+>>>
 
 11. reg y: `reg`
 >>> [You have offline messages:]
->>> Group Chat x: <2023-11-06 23:00:52.536366> success
+>>>
+>>> Group Chat x: <2023-11-07 01:07:14.852733> success
+>>>
 [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+>>>
 
 12. server, x, y, z: exit(ctrl + c)
 server: Stoping Server...
@@ -135,16 +168,19 @@ Server Unavailability for Group Chats
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True]}
+>>>
 
 3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+>>>
 
 4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+>>>
 
 5. server exit: ctrl + c 
 Stoping Server...
@@ -159,8 +195,13 @@ Retrying..
 [Exiting]
 
 7. send message y->z: `send z still works`
-y: >>> [Message received by z.]
-z: >>> y: still works
+y output: 
+>>> [Message received by z.]
+>>>
+
+z output: 
+>>> y: still works
+>>>
 
 8. y, z: exit(ctrl + c)
 y,z: >>> Exiting...
@@ -177,14 +218,17 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True]}
+>>>
 
 3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
 {'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+>>>
 
 4. dereg y: `dereg`
 >>> [You are Offline. Bye.]
+>>>
 
 5. Invalid commands while deregistered for y(send, send_all, dereg)
  a. chat y->x: `send x hello`
@@ -194,7 +238,7 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
  c. dereg y: `dereg`
  >>> [Invalid command, not registered]
 
-6. Invalid command while registered for x(reg): `reg`
+6. Invalid command while registered for x (reg): `reg`
 >>> [Invalid command, client already registered]
 
 7. Try to register a client with the same name as an already active client: `./ChatApp -c x 10.150.0.2 9000 4000`
