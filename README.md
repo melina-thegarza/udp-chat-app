@@ -27,12 +27,12 @@ Set permissions
 ## PROGRAM FEATURES
 ### Registered client can:
 #### Send Direct Messages
-- send <client-name> <message>
+- send [client-name] [message]
   
   ex. `send client1 hi`
   
 #### Send Group Messages
-- send_all <message>
+- send_all [message]
   
   ex. `send_all hello`
   
@@ -40,6 +40,7 @@ Set permissions
 - `dereg`
 
 ### Deregistered client can:
+#### Register
 - `reg`
 
 ## CODE EXPLANATION
@@ -68,7 +69,7 @@ To ensure no blocking occurs, both the server and client have threads to separat
 
 
 ## KNOWN BUGS
-- Issue: The ">>> " prompt sometimes starts a new line when prompting for user input, and it is not always displayed at the bottom of the console, waiting for input.
+- Issue: The ">>> " prompt sometimes starts a new line when prompting for user input, and it is not always displayed at the bottom of the console, waiting for input. However, it still takes in the correct commands and behaves as expected, as shown below.
 
 ex.
 
