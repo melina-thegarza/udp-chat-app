@@ -591,9 +591,8 @@ def main():
             print(">>>[ERROR: Invalid ip address, needs to be in format of #.#.#.#]")
             sys.exit()
 
-        #get ip address of client machine
-        client_ip = socket.gethostbyname(socket.gethostname())
-
+        #bind to 0.0.0.0
+        client_ip = '0.0.0.0'
         #create a socket
         client_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
