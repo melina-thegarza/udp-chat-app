@@ -1,28 +1,25 @@
-**NOTE**: REPLACE '10.150.0.2', with the appropriate server IP address gathered via the command `ip addr show scope global | grep -oP 'inet \K[\d.]+'`
-
-
 TEST CASE #1: 
 Offline Messaging: If the original sender is offline, include delivery confirmation in their offline messages when they return.
 
 1. start server: `./ChatApp -s 9000`
 >>>
 
-2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True]}
+{'x': ['127.0.0.1', 3000, True]}
 >>>
 
-3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
 
-4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
+4. start client z: `./ChatApp -c z 127.0.0.1 9000 3002`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
 
 5. dereg y: `dereg`
@@ -53,10 +50,10 @@ Offline Messaging: If the original sender is offline, include delivery confirmat
 >>> Group Chat x: <2023-11-07 00:58:37.207576> hello world
 >>>
 [Client table updated.]
-{'x': ['10.150.0.2', 3000, False], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, False], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
 
-10. reg x(receive delivery confirmation from saved messages): `reg`
+10. reg x (receive delivery confirmation from saved messages): `reg`
 >>> [You have offline messages:]
 >>>
 [Offline Message sent at <2023-11-07 00:57:25.769455> received by y.]
@@ -64,7 +61,7 @@ Offline Messaging: If the original sender is offline, include delivery confirmat
 [Offline Message sent at <2023-11-07 00:58:37.207576> received by y.]
 >>>
 [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
 
 11. server, x, y, z: exit(ctrl + c)
@@ -81,22 +78,22 @@ Offline Chatting in Group Chats: Silent Leave vs Notified Leave
 1. start server: `./ChatApp -s 9000`
 >>>
 
-2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True]}
+{'x': ['127.0.0.1', 3000, True]}
 >>>
 
-3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
 
-4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
+4. start client z: `./ChatApp -c z 127.0.0.1 9000 3002`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
 
 5. SILENT LEAVE: `ctrl + c` client y
@@ -111,19 +108,19 @@ x output:
 [Offline Message sent at <2023-11-07 01:04:26.274885> received by the server and saved.]
 >>>
 [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, False], 'z': ['127.0.0.1', 3002, True]}
 >>>
 
 z output:
 [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, False], 'z': ['127.0.0.1', 3002, True]}
 >>>
 >>> Group Chat x: failure
 >>>
 
 server output:
 [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, False], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, False], 'z': ['127.0.0.1', 3002, True]}
 >>> 
 
 7. server, x, z: exit(ctrl + c)
@@ -152,7 +149,7 @@ z output:
 >>> Group Chat x: <2023-11-07 01:07:14.852733> success
 >>>
 [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
 
 12. server, x, y, z: exit(ctrl + c)
@@ -167,28 +164,28 @@ Server Unavailability for Group Chats
 1. start server: `./ChatApp -s 9000`
 >>>
 
-2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True]}
+{'x': ['127.0.0.1', 3000, True]}
 >>>
 
-3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
 
-4. start client z: `./ChatApp -c z 10.150.0.2 9000 3002`
+4. start client z: `./ChatApp -c z 127.0.0.1 9000 3002`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True], 'z': ['10.150.0.2', 3002, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
 
 5. server exit: ctrl + c 
 Stopping Server...
 
-6. send group message from x(send_all will fail, x should make 5 attempts, printing each attempt, and then exit): `send_all not working`
+6. send group message from x (send_all will fail, x should make 5 attempts, printing each attempt, and then exit): `send_all not working`
 >>> Retrying..
 Retrying..
 Retrying..
@@ -217,16 +214,16 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
 1. start server: `./ChatApp -s 9000`
 >>>
 
-2. start client x: `./ChatApp -c x 10.150.0.2 9000 3000`
+2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True]}
+{'x': ['127.0.0.1', 3000, True]}
 >>>
 
-3. start client y: `./ChatApp -c y 10.150.0.2 9000 3001`
+3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
 >>> [Client table updated.]
-{'x': ['10.150.0.2', 3000, True], 'y': ['10.150.0.2', 3001, True]}
+{'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
 
 4. dereg y: `dereg`
@@ -244,7 +241,7 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
 6. Invalid command while registered for x (reg): `reg`
 >>> [Invalid command, client already registered]
 
-7. Try to register a client with the same name as an already active client: `./ChatApp -c x 10.150.0.2 9000 4000`
+7. Try to register a client with the same name as an already active client: `./ChatApp -c x 127.0.0.1 9000 4000`
 >>> [ERROR: User already exists, try another nickname]
 
 8. Try to send to a client that doesn't exist a message, chat x->fake: `send fake hello`
@@ -253,13 +250,13 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
 9. In another terminal, run the following commands:
 
     Invalid port numbers for server/client port number:
-    a. `./ChatApp -c new-client 10.150.0.2 9000 4`
+    a. `./ChatApp -c new-client 127.0.0.1 9000 4`
     >>> [ERROR: Port number out of range, needs to be in range 1024-65535]
-    b. `./ChatApp -c new-client 10.150.0.2 9000 not-port`
+    b. `./ChatApp -c new-client 127.0.0.1 9000 not-port`
     >>> [ERROR: Port number not an integer]
-    c. `./ChatApp -c new-client 10.150.0.2 wrong 4888`
+    c. `./ChatApp -c new-client 127.0.0.1 wrong 4888`
     >>> [ERROR: Port number not an integer]
-    d. `./ChatApp -c new-client 10.150.0.2 90 4888`
+    d. `./ChatApp -c new-client 127.0.0.1 90 4888`
     >>> [ERROR: Port number out of range, needs to be in range 1024-65535]
 
     Invalid IP address for server:
@@ -274,7 +271,7 @@ Stopping Server...
     a. start server again `./ChatApp -s 9000 extra`
     >>> [ERROR: Incorrect number of arguments]
     CLIENT
-    b. start a new client `./ChatApp -c new-client 10.150.0.2`
+    b. start a new client `./ChatApp -c new-client 127.0.0.1`
     >>> [ERROR: Incorrect number of arguments]
 
 12. server, x, y: exit(ctrl + c)

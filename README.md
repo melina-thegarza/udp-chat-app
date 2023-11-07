@@ -13,34 +13,26 @@ Set permissions
 ### Starting the Server
 `./ChatApp -s <port #>`
 ### Starting the Client
-Get the IPv4 address for ens4 of the server/VM(in the Google Cloud console)
-  
-  `ip addr show scope global | grep -oP 'inet \K[\d.]+'`
-  
-Start the client
-  
-  `./ChatApp -c <client-name> <server-ip(from the above command)> <server-port> <client-port>`
+`./ChatApp -c <client-name> 127.0.0.1 <server-port> <client-port>`
 
 ### Example Setup
 1. Open a terminal, and run the following commands:
 - `sudo chmod 777 ChatApp`
 - `./ChatApp -s 9000`
 2. Open a second terminal, and run the following commands:
-- `ip addr show scope global | grep -oP 'inet \K[\d.]+'`
-  output: 10.150.0.2
-- `./ChatApp -c client1 10.150.0.2 9000 3000`
+- `./ChatApp -c client1 127.0.0.1 9000 3000`
 3. Repeat step 2 to open multiple clients(make sure each client has a unique name & port #)
 
 
 ## PROGRAM FEATURES
 ### Registered client can:
 #### Send Direct Messages
-- send
+- send <client-name> <message>
   
   ex. `send client1 hi`
   
 #### Send Group Messages
-- send_all
+- send_all <message>
   
   ex. `send_all hello`
   
@@ -84,10 +76,6 @@ ex.
 
   send client1 message
   
-- Issue: server binding to 0.0.0.0 has different behavior on local and Google Cloud environments
-  - Locally to start the server you can run `./ChatApp 9000` and then start a client `./ChatApp -c client 127.0.0.1 9000 4090` and everything works as expected. However, on Google Cloud, the server sends its IP address as the IPv4 address for ens4(ex. 10.150.0.2) instead of 127.0.0.1. Thus, we have to know the IPv4 address for the VM for it to work in Google Cloud.
-- Note: The server accepts messages on both 127.0.0.1 and its IPv4 address, however, the server socket only sends as either 127.0.01(locally) or as its IPv4 address(Google Cloud).
-
 ## FUNCTIONS IMPLEMENTED
 1. **server_receiver**: thread to handle messages received by the server
 2. **send_online_confirmation**: when the server receives a save-message request, we need to confirm whether or not a client is online
