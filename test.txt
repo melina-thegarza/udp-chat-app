@@ -1,3 +1,6 @@
+**NOTE**: REPLACE '10.150.0.2', with the appropriate server IP address gathered via the command `ip addr show scope global | grep -oP 'inet \K[\d.]+'`
+
+
 TEST CASE #1: 
 Offline Messaging: If the original sender is offline, include delivery confirmation in their offline messages when they return.
 
@@ -65,7 +68,7 @@ Offline Messaging: If the original sender is offline, include delivery confirmat
 >>>
 
 11. server, x, y, z: exit(ctrl + c)
-server: Stoping Server...
+server: Stopping Server...
 x,y,z: >>> Exiting...
 
 
@@ -153,7 +156,7 @@ z output:
 >>>
 
 12. server, x, y, z: exit(ctrl + c)
-server: Stoping Server...
+server: Stopping Server...
 x,y,z: >>> Exiting...
 
 ______________________
@@ -183,7 +186,7 @@ Server Unavailability for Group Chats
 >>>
 
 5. server exit: ctrl + c 
-Stoping Server...
+Stopping Server...
 
 6. send group message from x(send_all will fail, x should make 5 attempts, printing each attempt, and then exit): `send_all not working`
 >>> Retrying..
@@ -264,7 +267,7 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
     >>>[ERROR: Invalid ip address, needs to be in format of #.#.#.#]
     
 10. server exit: ctrl + c 
-Stoping Server...
+Stopping Server...
 
 11. Wrong number of arguments:
     SERVER

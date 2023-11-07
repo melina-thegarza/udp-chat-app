@@ -564,7 +564,7 @@ def main():
                 server_receiver_thread.start()
 
         except KeyboardInterrupt:
-            print("Stoping Server...")
+            print("Stopping Server...")
            
     #client registration
     #$ ChatApp -c <name> <server-ip> <server-port> <client-port>
