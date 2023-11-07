@@ -74,6 +74,9 @@ To ensure no blocking occurs, both the server and client have threads to separat
 
 **Client Sender Thread:** Sends messages from clients to other clients or the server, ensuring valid commands and handling acknowledgments.
 
+## KNOWN BUGS
+- ">>> " is not always displayed at the bottom of the console waiting for input, but if you type in valid commands everything works as expected
+
 ## FUNCTIONS IMPLEMENTED
 1. **server_receiver**: thread to handle messages received by the server
 2. **send_online_confirmation**: when the server receives a save-message request, we need to confirm whether or not a client is online
