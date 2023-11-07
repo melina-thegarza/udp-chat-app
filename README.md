@@ -74,8 +74,15 @@ To ensure no blocking occurs, both the server and client have threads to separat
 
 **Client Sender Thread:** Sends messages from clients to other clients or the server, ensuring valid commands and handling acknowledgments.
 
+
 ## KNOWN BUGS
-- ">>> " is not always displayed at the bottom of the console waiting for input, but if you type in valid commands everything works as expected
+Issue: The ">>> " prompt sometimes starts a newline when prompting for user input, and it is not always displayed at the bottom of the console, waiting for input.
+
+ex.
+
+ ">>>"
+
+  send client1 message
 
 ## FUNCTIONS IMPLEMENTED
 1. **server_receiver**: thread to handle messages received by the server
@@ -88,14 +95,6 @@ To ensure no blocking occurs, both the server and client have threads to separat
 8. **send_group_chat**: when a client sends a group chat message, this thread handles sending the message to the server, the timeout, and ensuring that the request is ACKed
 9. **check_port_num**: checks to make sure that the given input is a valid port number
 
-## KNOWN BUGS
-Issue: The ">>> " prompt sometimes starts a newline when prompting for user input, and it is not always displayed at the bottom of the console, waiting for input.
-
-ex.
-
- ">>>"
-
-  send client1 message
 ## TEST CASES
 1. Offline Messaging: If the original sender is offline, include delivery confirmation in their offline messages when they return.
 
