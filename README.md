@@ -40,7 +40,7 @@ Set permissions
 - `dereg`
 
 ### Deregistered client can:
-#### Register
+#### Re-register
 - `reg`
 
 ## CODE EXPLANATION
