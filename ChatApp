@@ -484,7 +484,7 @@ def send_dereg(client_socket, client_name, server_ip, server_port):
         if message_id not in message_acks:
             #acked, break out of loop
             break
-        else:
+        elif(retries!=5):
             #no response from the server, retry
             print("Retrying..")
         retries+=1
@@ -512,7 +512,7 @@ def send_group_chat(client_socket,client_name,server_ip,server_port, message):
         if message_id not in message_acks:
             #acked, break out of loop
             break
-        else:
+        elif(retries!=5):
             #no response from the server, retry
             print("Retrying..")
         retries+=1
