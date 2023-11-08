@@ -159,7 +159,7 @@ x,y,z: >>> Exiting...
 ______________________
 
 TEST CASE #3: 
-Server Unavailability for Group Chats
+Server Unavailability for Group Chats & Registration
 
 1. start server: `./ChatApp -s 9000`
 >>>
@@ -203,7 +203,16 @@ z output:
 >>> y: still works
 >>>
 
-8. y, z: exit(ctrl + c)
+8. Try to register a client while the server is down(should make 5 attempts, printing each attempt,then exit): `./ChatApp -c new-client 127.0.0.1 9000 4000`
+Retrying..
+Retrying..
+Retrying..
+Retrying..
+Retrying..
+[Server not responding]
+[Exiting]
+
+9. y, z: exit(ctrl + c)
 y,z: >>> Exiting...
 
 ______________________
@@ -242,7 +251,7 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
 >>> [Invalid command, client already registered]
 
 7. Try to register a client with the same name as an already active client: `./ChatApp -c x 127.0.0.1 9000 4000`
->>> [ERROR: User already exists, try another nickname]
+>>> [REGISTRATION ERROR: User already exists, try another nickname]
 
 8. Try to send to a client that doesn't exist a message, chat x->fake: `send fake hello`
 >>>[Invalid Command, client doesn't exist]

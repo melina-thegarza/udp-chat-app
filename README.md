@@ -86,14 +86,16 @@ ex.
 6. **client_sender**: given client input, a client_sender thread is started which is responsible for sending the message and keeping track of ACKs
 7. **send_dereg**: when a client `dereg`, this thread handles the deregistration process including timeout and exiting if no ACK is received
 8. **send_group_chat**: when a client sends a group chat message, this thread handles sending the message to the server, the timeout, and ensuring that the request is ACKed
-9. **check_port_num**: checks to make sure that the given input is a valid port number
+9. **send_registration**: handles the initial registration of the client, makes sure that server is active and that user doesn't already exist
+10. **check_port_num**: checks to make sure that the given input is a valid port number
+
 
 ## TEST CASES
 1. Offline Messaging: If the original sender is offline, include delivery confirmation in their offline messages when they return.
 
 2. Offline Chatting in Group Chats: Silent Leave vs Notified Leave
 
-3. Server Unavailability for Group Chats
+3. Server Unavailability for Group Chats & Registration
 
 4. Error Handling: Handling Invalid Commands, Duplicate User Registration, and Invalid Port Numbers/IP Addresses
 

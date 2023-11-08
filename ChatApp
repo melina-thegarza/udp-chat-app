@@ -182,7 +182,7 @@ def server_receiver(server_socket,message,client_address_port,client_ip_address,
             #send ack for client registration
             server_socket.sendto(str.encode("ACK: Registration Successful"),client_address_port)
         else:
-            server_socket.sendto(str.encode(">>> [ERROR: User already exists, try another nickname]"),client_address_port)
+            server_socket.sendto(str.encode(">>> [REGISTRATION ERROR: User already exists, try another nickname]"),client_address_port)
 
     #BROADCAST TO THE ALL OF THE CLIENTS, the new updated client table
     if broadcast:
@@ -252,8 +252,21 @@ def client_handle_message(client_socket, client_name, server_ip, server_port, me
 
         #message from the server
         if sender_ip_address==server_ip and sender_port == server_port:
+            #Successful Initial Registration
+            if message=="ACK: Registration Successful":
+                 print(">>> [Welcome, You are registered.]")
+                 #update client status to registered
+                 global client_registration_status
+                 client_registration_status = True
+                 #remove from ack dict
+                 message_acks.pop(client_name, None)
+
+            #Unsuccessful Initial Registraiton
+            elif message.startswith(">>> [REGISTRATION ERROR:"):
+                print(message)
+                os._exit(0)   
             #IF DEREG ACK from server
-            if message.startswith("[DEREG]:"):
+            elif message.startswith("[DEREG]:"):
                 #remove message_id from ack dict
                 message_id = message.split(":")[1]
                 message_acks.pop(message_id, None)
@@ -457,7 +470,8 @@ def send_dereg(client_socket, client_name, server_ip, server_port):
     client_registration_status = False
     
     retries = 0
-    while retries < 5:
+    #original plus 5 retries
+    while retries < 6:
         #add message to dict for ack
         message_id = str(uuid.uuid4())
         message_acks[message_id] = False
@@ -474,7 +488,7 @@ def send_dereg(client_socket, client_name, server_ip, server_port):
             #no response from the server, retry
             print("Retrying..")
         retries+=1
-    if retries == 5:
+    if retries == 6:
         print("[Server not responding]")
         print("[Exiting]")
         os._exit(0)    
@@ -483,7 +497,8 @@ def send_dereg(client_socket, client_name, server_ip, server_port):
 def send_group_chat(client_socket,client_name,server_ip,server_port, message):
     message_to_send = message.split(" ",1)[1]
     retries = 0
-    while retries < 5:
+    #original plus 5 retries
+    while retries < 6:
         #add message to dict for ack
         message_id = str(uuid.uuid4())
         message_acks[message_id] = False
@@ -501,10 +516,35 @@ def send_group_chat(client_socket,client_name,server_ip,server_port, message):
             #no response from the server, retry
             print("Retrying..")
         retries+=1
-    if retries == 5:
+    if retries == 6:
         print("[Server not responding]")
         print("[Exiting]")
         os._exit(0)    
+
+#inital registration of the client
+def send_registration(client_socket,client_name,server_ip,server_port):
+    retries = 0
+    #original plus 5 retries
+    while retries < 6:
+        #add client name to ack dictionary
+        message_acks[client_name] = False
+        #send registration
+        client_socket.sendto(str.encode(client_name),(server_ip,server_port))
+
+        #wait for 100 msec
+        time.sleep(0.1)
+
+        if client_name not in message_acks:
+            #acked, break out of loop
+            break
+        elif(retries!=5):
+            #no response from the server, retry
+            print("Retrying..")
+        retries+=1
+    if retries == 6:
+        print("[Server not responding]")
+        print("[Exiting]")
+        os._exit(0)   
 
 def check_port_num(port_num):
         #invalid port #
@@ -599,30 +639,13 @@ def main():
         #bind to ip address & port
         client_socket.bind((client_ip,client_port))
 
-        #initial connection to server 
-        client_socket.sendto(str.encode(client_name),(server_ip,server_port))
-
-        #client table
-        global client_table
-
-        ##successful registration?
-        request = client_socket.recvfrom(65535)
-        registration_ack = request[0].decode()
-      
-        #make sure we receive positive ACK for registration
-        if registration_ack == "ACK: Registration Successful":
-            print(">>> [Welcome, You are registered.]")
-            global client_registration_status
-            client_registration_status = True
-        elif registration_ack.startswith(">>> [ERROR"):
-            print(registration_ack)
-            sys.exit()
-        
-
         # receiver thread created for client
         receive_client_thread = threading.Thread(target=client_receiver, args=(client_socket, client_name, server_ip, server_port))
         receive_client_thread.start()
 
+        #send initial connection to server
+        send_registration(client_socket,client_name,server_ip,server_port)
+        
         #send messages
         try:
             while(True):
