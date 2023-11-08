@@ -6,21 +6,27 @@ Offline Messaging: If the original sender is offline, include delivery confirmat
 
 2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True]}
 >>>
+>>> 
 
 3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
+>>> 
 
 4. start client z: `./ChatApp -c z 127.0.0.1 9000 3002`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
+>>> 
 
 5. dereg y: `dereg`
 >>> [You are Offline. Bye.]
@@ -80,21 +86,27 @@ Offline Chatting in Group Chats: Silent Leave vs Notified Leave
 
 2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True]}
 >>>
+>>> 
 
 3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
+>>> 
 
 4. start client z: `./ChatApp -c z 127.0.0.1 9000 3002`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
+>>> 
 
 5. SILENT LEAVE: `ctrl + c` client y
 >>> Exiting...
@@ -166,21 +178,27 @@ Server Unavailability for Group Chats & Registration
 
 2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True]}
 >>>
+>>> 
 
 3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
+>>> 
 
 4. start client z: `./ChatApp -c z 127.0.0.1 9000 3002`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True], 'z': ['127.0.0.1', 3002, True]}
 >>>
+>>> 
 
 5. server exit: ctrl + c 
 Stopping Server...
@@ -225,15 +243,19 @@ Error Handling: Handling Invalid Commands, Duplicate User Registration, and Inva
 
 2. start client x: `./ChatApp -c x 127.0.0.1 9000 3000`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True]}
 >>>
+>>> 
 
 3. start client y: `./ChatApp -c y 127.0.0.1 9000 3001`
 >>> [Welcome, You are registered.]
->>> [Client table updated.]
+>>>
+[Client table updated.]
 {'x': ['127.0.0.1', 3000, True], 'y': ['127.0.0.1', 3001, True]}
 >>>
+>>> 
 
 4. dereg y: `dereg`
 >>> [You are Offline. Bye.]
